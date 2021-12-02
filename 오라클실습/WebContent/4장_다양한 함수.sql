@@ -1,6 +1,6 @@
 --<북스-4장.다양한 함수>
 
-/*******<문자함수>***************************/
+/*******<문자함수>**************************/
 
 --1. 대소문자 변환함수
 
@@ -608,19 +608,182 @@ from dual; -- 결과 50000(천단위 구분 쉼표 생략해도 수로 변환 �
 select '100000'-to_number('50000')
 from dual; -- 결과 50000 / to_number() 사용할 필요 없음(자동형변환 됨)
 
+select nullif('A','A'), nullif('a','b')
+from dual;
+
+
+--4. coalesce(인수, 인수, 인수....)
+
+/*
+ * 사원테이블에서 커미션이 null이 아니면 커미션을 출력,
+ * 커미션이 null이고 급여가 null이 아니면 급여를 출력,
+ * 커미션과 급여 모두 null이면 0 출력
+ */
+
+select ename, salary, commission,
+coalesce(commission,salary,0)
+from employee;
+
+/*
+ * java에서는 
+ * if(commission != null) commission출력
+ * else if(salary != null) salary출력
+ * else 0 출력
+ * 
+ */
+-- 부서이름을 오름차순 정렬하여 출력 [방법1] : decode함수 사용
+
+/* 5. decode() : switch~case문과 같음 ★☆ 많이 사용
+ * switch(dno){
+ * case 10: 'ACCOUNTING'출력; break;
+ * case 20: 'RESEARCH'출력; break; 
+ * case 30: 'SALES'출력; break;
+ * case 40: 'OPERATIONS'출력; break;
+ * default: '기본'출력
+ * 
+ */
+
+--5. decode() : switch~case문과 같음 ★☆ 많이 사용
+-- decode()로 부서이름 출력
+select ename, dno,
+DECODE(dno,10,'ACCOUNTING',
+		   20,'RESEARCH',
+		   30,'SALES',
+		   40,'OPERATIONS',
+		   '기본') as dname
+from employee
+order by dno asc;
+
+
+-- 부서이름을 오름차순 정렬하여 출력 [방법2]
+--6. case~end : 자바에서 if~else if~else문과 비슷
+--주의 case~end 사이에는 콤마 없음
+--decode()함수에서 사용하지 못 하는 비교연산자 중 =를 제외한 나머지 비교연산자를 사용 가능(>= , < 등)
+
+select ename,dno,
+case when dno=10 then 'ACCOUNTING'
+	 when dno=20 then 'RESEARCH'
+	 when dno=30 then 'SALES'
+	 when dno=40 then 'OPERATIONS'
+	 else '기본'
+END AS ename
+from employee
+order by dno;
+
+
+
+-- 부서이름을 오름차순 정렬하여 출력 [방법3] 두 테이블을 하나의 테이브로 join
+select ename, dno, dname
+from empolyee natural join department--둘다 dno
+order by dno asc;
+
+
+------------------------------------------------------------------
+
+--[교재에 없는 내용]
+
+/*
+ * 자동 형변환
+ */
+
+select '100'+200
+from dual; -- 문자 '100' => 수 100으로 자동형변환되어 연산
+
+-- 문자 연결
+select concat('100', 200), -- 수 100 => 문자 '200'으로 자동형변환 // '100200'
+100 || 200 || 300 || 400 -- 모두 문자로 자동형변환 '00' || '200'
+from dual;
+
+select ename
+from employee
+where eno='7369'; -- 'eno는 number'이므로 비교하려면 같은 타입으로 맞춰야 함. 문자 '7369' => 정수로 자동형변환 후 비교
+
+
+select ename
+from employee
+where eno=CAST('7369' as number(4));
+-- 많이 사용되지는 않지만, cast함수를 사용하면 타입이 맞지 않아 발생하는 오류를 방지할 수 있다
+
 
 /*
  * cast() : 데이터 형식 변환 함수 
+ *          데이터 형식을 실시간으로 변환하는데 사용됨
+ *          자동형변환이 되지 않을 때 사용
  */
 
---2. 다양한 구분자를 날짜 형식으로 변경 가능 (예) 날짜: '2021-05-21' , '2021/05/21'
+select avg(salary) as "평균 월급"
+from employee; -- 결과가 실수. 2074.2142....
 
-select CAST('2021$05$21' AS DATE) from dual;
+
+-- 1.1 실수로 나온 결과를 전체 6자리 중 소수점 이하 2자리까지 표현(셋째자리에서 반올림)
+-- ★주의 : 소수점을 포함하는 숫자 타입 변환 시, 기존의 자릿수보다 작은 자릿수로 cast하게 되면 (강제 형 변환하게 되면)
+-- round()반올림 되어 처리 됨
+
+select CAST(avg(salary) as number(6,2)) as "평균 월급" 
+from employee; --2073.21
+
+select ROUND(avg(salary),2) as "평균 월급" 
+from employee;
+
+
+-- 데이터 형식을 실시간으로 변환하는데 사용됨
+
+select CAST (ename as CHAR(20)),
+	   length(ename),
+	   length(CAST (ename as CHAR(20)))
+from employee;
+
+
+-- run sql commandline에서 employee 테이블 구조 확인해보니 
+desc employee;
+-- 결과: ename의 데이터 형식은 변하지 않음
+
+
+-- 1.2 실수로 나온 결과를 '정수로 보기 위해서'
+-- 아래 2개는 결과가 다름
+
+select CAST(avg(salary) as number(6)) as "평균 월급" -- 정수 6자리로 출력하지만 반올림도 된다
+from employee; -- 만약 2073.7142..... => 2074
+
+select TRUNC(avg(salary)) as "평균 월급" 
+from employee; -- 만약 자바에서 (int)2073.8142.....=>2073 -- 반올림x 그냥 잘라버림
+
+
+
+-- 테스트: 사원번호 7369의 급여를 800으로 수정
+
+update employee -- update 테이블 명 (주의: update에는 from 없음) 
+set salary=800 -- set 컬럼명=변경할 값
+where eno=7369; -- where 조건;
+
+select *
+from employee;
+
+
+
+-- 2. 다양한 구분자를 날짜 형식으로 변경 가능 (예) 날짜: '2021-05-21' , '2021/05/21'
+
+select CAST('2021$05$21' AS DATE) from dual; -- 원래 자동형변환 되지만 안 될 때 CAST 사용
+select CAST('2021%05%21' AS DATE) from dual; 
+select CAST('2021#05#21' AS DATE) from dual; 
+select CAST('2021@05@21' AS DATE) from dual; 
+
+
+-- 3. 쿼리의 결과를 보기 좋도록 처리할 때
+
+select nvl(salary,0) + nvl(commission,0) as "총 합"
+from employee;
+
+
+select CAST(nvl(salary,0) as char(7)) || '+' || CAST(nvl(commission,0) AS CHAR(7)) || '=' as "월급+커미션",
+nvl(salary,0) + nvl(commission,0) as "총 합"
+from employee;
+
 
 
 
 --북스 130p
-/*******<일반함수>***************************/
+/*******<일반함수>**************************/
 /*
  * null은 연산, 비교 불가
  * 
@@ -645,3 +808,6 @@ nvl2(commission, salary*12+commission, salary*12) as "연봉",
 salary*12 + nvl2(commission, 1000, 0) as "커미션null아닌사원+1000",
 salary*12 + nvl(nullif(commission, null),0)
 from employee;
+
+
+
