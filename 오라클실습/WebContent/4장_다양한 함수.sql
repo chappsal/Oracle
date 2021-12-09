@@ -677,6 +677,101 @@ select ename, dno, dname
 from empolyee natural join department--둘다 dno
 order by dno asc;
 
+--------------------------------------------------------------------------------------------
+--<4장 다양한 함수-혼자해보기>
+
+
+--1. substr 함수를 이용하여 사원들의 입사년도,입사한 달만 출력
+
+select ename,substr(hiredate,1,5) as "입사 년도/월"
+from employee;
+
+
+--풀이
+select hiredate,substr(hiredate,1,2)년도, substr(hiredate,4,2) 달
+from employee;
+
+
+select hiredate,
+substr(to_char(hiredate,'yyyy-mm-dd'),1,4) 년도,
+substr(hiredate,4,2) 달
+from employee;
+
+
+
+--2. substr을 사용하여 4월에 입사한 사원 출력
+
+select ename,hiredate
+from employee
+where substr(hiredate,5,1)=4;
+
+
+--풀이
+select *
+from employee
+where substr(hiredate,4,2)='04';
+where substr(to_char(hiredate,'yyyy-mm-dd'),6,2)='04';
+
+
+
+--3. mod를 사용하여 사원번호가 짝수인 사람 출력
+
+select ename,eno as 사원번호
+from employee
+where MOD(eno,2)=0;
+
+
+
+--4. 입사일을 연도 2자리 yy, 월은 숫자 mon으로 표시하고 요일은 약어 dy로 지정하여 출력
+
+select ename, to_char(hiredate,'yy/mm/dd dy')
+from employee;
+
+
+
+
+--5. 올해 며칠이 지났는지 출력. 
+--현재날짜에서 올해 1/1일을 뺀 결과를 출력하고 
+--to_date함수를 사용하여 데이터형을 일치시키시오
+
+
+
+
+
+
+--풀이
+select sysdate-'2021/01/01'
+from dual -- 오류: 데이터 형이 일치하지 않음(날짜형식-문자형식)
+
+select sysdate-TO_DATE('2021/01/01','YYYY/MM/DD')
+from dual; 
+
+select trunc(sysdate-TO_DATE('2021/01/01','YYYY/MM/DD'))
+from dual; -- 정수로 표시
+
+
+
+--6. 사원들의 상관 사번을 출력하되 상관이 없는 사람에 대해서는 null대신 0으로 출력
+
+
+select eno, ename, nvl(manager,0) as 상관사번
+from employee;
+
+
+
+--7. decode로 직급에 따라 급여를 인상하도록 하시오. 직급이 anaiyst인 사원은 200. SALESMAN은 180 MANAGER는 150 CLERK은 100인상
+
+
+select ename,job,salary,
+decode(job, 'ANALYST',salary+200,
+			'SALESMAN',salary+180,
+			'MANAGER',salary+150,
+			'CLERK',salary+100) as "인상된 급여"
+from employee
+order by salary;
+
+
+
 
 ------------------------------------------------------------------
 
@@ -809,5 +904,59 @@ salary*12 + nvl2(commission, 1000, 0) as "커미션null아닌사원+1000",
 salary*12 + nvl(nullif(commission, null),0)
 from employee;
 
+
+-- ★★ rank() : 순위 구하기
+-- 연봉 상위 3개 조회 - rank() 함수 사용  
+-- 만약 급여가 같다면 커미션이 높은 순으로 조회, 커미션이 같다면 사원명을 알파벳 순으로 조회
+
+
+-- 방법 1 : 해결 안 됨
+select ename, salary, commission
+from employee
+where rownum <=3                       -- 조건에 맞는 결과를 조회 후
+order by salary desc, commission desc; -- 정렬 
+
+-- 방법 2 : 해결
+select ename, salary, commission,
+RANK() OVER(order by salary desc) as "급여 순위-1",       -- 급여 순위 1 2 2 4 
+DENSE_RANK() OVER(order by salary desc) as "급여 순위-2", -- 급여 순위 1 2 2 3 
+RANK() OVER(order by salary desc, commission desc, ename asc) as "급여 순위-3"        -- 급여 순위 1 2 3 4 / 순위가 중복되지 않도록 함
+from employee;
+
+
+-- 부서그룹별 순위 구하기 : partition by + 그룹 컬럼명
+select dno, ename, salary, commission,
+rank() over(partition by dno order by salary desc, commission desc, ename asc) as "부서별 그룹 순위" -- 순위 중복 x
+from employee;
+
+
+-- 부서그륩별 최소값, 최대값 구하기
+select max(salary), min(salary) -- 각 1개의 결과만 나옴 
+from employee;
+ 
+
+-- 이렇게 하면 각각이 그룹이 됨 
+select dno, ename, salary, 
+MIN(salary)  -- 그룹함수
+MAX(salary) 
+from EMPLOYEE
+group by dno, ename, salary; -- 그룹 : 부서 사원명 급여
+ 
+ 
+-- 해결
+select dno,  -- ename, salary 넣으면 안 됨 
+MIN(salary) as "부서별 최소 급여", -- 그룹함수
+MAX(salary) as "부서별 최대 급여"
+from EMPLOYEE
+group by dno; --부서별 그룹으로 (각 부서는 1개씩만 출력되므로 다른 것들도 1개씩만 출력되어야 함)
+order by dno;
+-- 위 방법은  ename, salary 출력할 수 없음 (1:n  => 1:1이어야 출력)               
+ 
+ 
+-- 해결
+select dno, ename, salary,
+MIN(salary) keep(DENSE_RANK FIRST order by salary asc) OVER(partition by dno) as "부서별 최소 급여",
+MAX(salary) keep(DENSE_RANK LAST order by salary asc) OVER(partition by dno) as "부서별 최대 급여"
+from employee;  
 
 
