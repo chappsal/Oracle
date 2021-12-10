@@ -959,4 +959,3 @@ MIN(salary) keep(DENSE_RANK FIRST order by salary asc) OVER(partition by dno) as
 MAX(salary) keep(DENSE_RANK LAST order by salary asc) OVER(partition by dno) as "부서별 최대 급여"
 from employee;  
 
-
