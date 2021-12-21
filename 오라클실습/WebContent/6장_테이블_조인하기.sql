@@ -377,10 +377,10 @@ from employee e JOIN department d
 USING(dno)
 WHERE eno=7788;
 
---만약 manager_id가 department에 있다고 가정 후 아래 결과 유추
-select eno, e.manager_id, dno, d.manager_id --별칭 사용하여 반드시 구분 
+--★★만약 manager가 department에 있다고 가정 후 아래 결과 유추
+select eno, e.manager_id, dno, d.manager --별칭 사용하여 반드시 구분 
 from employee e JOIN department d --manager_id를 출력하려면 반드시 별칭 사용
-USING(dno) -- dno만 중복 제거(★manager_id는 중복 제거 안 됨)
+USING(dno) -- dno만 중복 제거(★manager는 중복 제거 안 됨)
 WHERE eno=7788;
 
 
@@ -392,11 +392,215 @@ WHERE eno=7788;
 ----------------------------------------------------------[방법 3] : 컬럼명이 다르면 cross join 결과가 나옴 
 ----------------------------------------------------------[방법 4] : 컬럼명이 다르면 join 안 됨(오류 발생)
 
+
 ------------------------------<4가지 정리 끝>-----------------------------------------------------------------
 
 
 --3. non-equi join=비등가조인 : 조인조건에서 '=(같다)연산자 이외'의 연산자를 사용할 때
 --							ex. != > < <= >= between~and
+
+
+--[문제] 사원별로 '사원이름, 급여, 급여 등급'출력
+
+--[1] 급여 등급 테이블 출력
+select * from salgrade;
+select * from employee;
+
+--[2] 사원별로 '사원이름, 급여, 급여 등급'출력
+
+-- 사원 이름, 급여 : 사원 테이블
+-- 급여 등급 : 급여 정보 테이블
+select ename, salary, grade
+from employee join salgrade --별칭 사용 안 함(이유: 중복되는 컬럼 없음)
+on salary between losal and hisal; --비등가 조인 조건
+
+
+--[문제] 사원별로 '사원이름, 급여, 급여 등급'출력 + [조건 추가] 급여가  1000 미만이거나 2000 초과하는 사람만 출력
+--[방법 2] 사용
+select ename, salary, grade
+from employee join salgrade --별칭 사용 안 함(이유: 중복되는 컬럼 없음)
+on losal <= salary and salary <= hisal
+where salary < 1000 or salary > 2000; --검색 조건 추가
+
+
+--[방법 1] 사용 : 정확한 결과 출력 x (why? and , or 함께 있으면 and 우선 실행 됨) 
+-- => 해결 : 괄호 사용하여 우선 순위 변경
+select ename, salary, grade
+from employee, salgrade
+where losal <= salary and salary <= hisal
+and salary < 1000 or salary > 2000;
+
+-- 위 문제 해결
+select ename, salary, grade
+from employee, salgrade
+where losal <= salary and salary <= hisal
+and (salary < 1000 or salary > 2000);
+
+
+--[문제] 3개의 테이블 조인하기
+--'사원 이름, 소속된 부서 번호, 소속된 부서명, 급여, 등급' 조회
+
+--사원 이름, 급여, 소속된 부서 번호 : 사원 테이블
+--소속된 부서명, 소속된 부서 번호 : 부서 테이블
+--등급 : 급여 정보 테이블
+
+--사원 테이블과 부서 테이블의 공통 칼럼 : dno(부서 번호)
+
+--[1] 사원 테이블과 부서 테이블은 '등가 조인' => 같은 칼럼이 있어서
+--[방법-1] 사용
+select ename, e.dno, dname, salary
+from employee e, department d
+where e.dno=d.dno;
+
+--[방법-2] 사용
+select ename, e.dno, dname, salary
+from employee e join department d
+on e.dno=d.dno;
+
+
+--[2] 등가 조인한 결과 테이블과 급여 정보 테이블은 '비등가 조인' => 같은 칼럼이 없어서
+select ename, dno, dname, salary, grade --별칭 사용x
+from salgrade join (select ename, e.dno, dname, salary
+					from employee e join department d
+					on e.dno=d.dno)
+on salary between losal and hisal; --비등가 조인
+
+---------------------------------------------------------------------------------비등가 조인 끝
+
+
+--4. self join : 하나의 테이블에 있는 컬럼끼리 연결해야 하는 조인이 필요한 경우
+select * from employee;
+
+--[문제] 사원 이름과 직속 상관 이름 조회
+select *
+from employee e join employee m --반드시 별칭 사용
+on e.manager = m.eno --'KING'은 직속 상관이 없으므로(null) 등가 조인에서 제외
+order by 1;
+
+select e.ename as "사원 이름", m.ename as "직속 상관 이름"
+from employee e join employee m --반드시 별칭 사용
+on e.manager = m.eno --'KING'은 직속 상관이 없으므로(null) 등가 조인에서 제외
+order by 1;
+
+select e.ename || '의 직속 상관은 ' || m.ename 
+from employee e join employee m --반드시 별칭 사용
+on e.manager = m.eno --'KING'은 직속 상관이 없으므로(null) 등가 조인에서 제외
+order by 1;
+
+
+--'SCOTT' 사원의 '매니저 이름'(=직속 상관) 검색
+select e.ename || '의 직속 상관은 ' || m.ename
+from employee e join employee m
+on e.manager = m.eno
+where e.ename = 'SCOTT';
+
+
+select e.ename || '의 직속 상관은 ' || m.ename
+from employee e join employee m
+on e.manager = m.eno
+where LOWER(e.ename) = 'scott';
+--e.ename의 값을 모두 소문자로 변경 후 'scott'과 같은 것 찾기
+
+-------------------------------------------------------------------------------------------
+
+--5. outer join
+--equi join(등가 조인)의 조인 조건에서 기술한 컬럼에 대해 두 테이블 중  어느 한쪽 컬럼이라도
+--null이 저장되어 있으면 '='의 비교 결과가 거짓이 된다
+--그래서 null값을 가진 행은 조인 결과로 얻어지지 않음
+
+select e.ename || '의 직속 상관은 ' || m.ename
+from employee e join employee m --반드시 별칭 사용
+on e.manager = m.eno; --조인 조건('KING'은 직속 상관이 없으므로(null) 등가 조인에서 제외 => 결과 x)
+
+select e.ename || '의 직속 상관은 ' || m.ename
+from employee e join employee m 
+on e.manager = m.eno -- 조인 조건 : null은 비교 연산자(= > !=)로 비교 불가
+where e.ename = 'KING'; --오류는 없지만 검색 결과가 없음
+--사원 이름이 'KING' 검색
+
+
+select e.ename || '의 직속 상관은 ' || m.ename
+from employee e join employee m
+on e.manager = m.eno
+where m.ename = 'KING'; --오류는 없지만 검색 결과가 없음
+--직속 상관 이름이 'KING' 검색 => 3명 출력
+
+
+--위 방법으로는 null값 표현 불가. 아래 방법으로 해결
+--[방법 -1] null값도 표현하기 위한 해결 방법 : 조인 조건에서 null값을 출력하는 곳에 (+) 붙임
+--주의 : (+)도 한쪽만 사용 가능(left or rifht) , full 안 됨
+select e.ename || '의 직속 상관은 ' || nvl(m.ename, '없다.')
+from employee e , employee m --반드시 별칭 사용
+where e.manager=m.eno(+);
+
+
+
+--[방법 -2] null값도 표현하기 위한 해결 방법 : (lefr/right/full) outer join 
+select e.ename || '의 직속 상관은 ' || nvl(m.ename, '없다.')
+from employee e left outer join employee m --반드시 별칭 사용
+on e.manager=m.eno;
+
+
+
+--<6장. 테이블 조인하기-혼자해보기>------------------------------------------------------------------------------
+
+
+/*
+ * 1.EQUI 조인을 사용하여 SCOTT 사원의 부서번호와 부서이름을 출력하시오.
+ */
+
+
+
+
+
+
+/*
+ * 2.(INNER) JOIN과 ON 연산자를 사용하여 사원이름과 함께 그 사원이 소속된 부서이름과 지역명을 
+ * 출력하시오.
+ */
+
+/*
+ * 3.(INNER) JOIN과 USING 연산자를 사용하여 10번 부서에 속하는 모든 담당 업무의 고유 목록
+ * (한 번씩만 표시)을 부서의 지역명을 포함하여 출력하시오.
+ */
+
+/*
+ * 4.NATURAL JOIN을 사용하여 커미션을 받는 모든 사원의 이름, 부서이름, 지역명을 출력하시오.
+ */
+
+/*
+ * 5.EQUI 조인과 WildCard를 사용하여 이름에 A가 포함된 모든 사원의 이름과 부서이름을 출력하시오.
+ */
+
+/*
+ * 6.NATURAL JOIN을 사용하여 NEW YORK에 근무하는 모든 사원의 이름, 업무, 부서번호, 부서이름을 
+ * 출력하시오.
+ */
+
+/*
+ * 7.SELF JOIN을 사용하여 사원의 이름 및 사원번호를 관리자 이름 및 관리자 번호와 함께 출력하시오.
+ */
+
+/*
+ * 8.'7번 문제'+ OUTER JOIN, SELF JOIN을 사용하여 '관리자가 없는 사원'을 포함하여 사원번호를
+ * 기준으로 내림차순 정렬하여 출력하시오.
+ */
+
+/*
+ * 9.SELF JOIN을 사용하여 지정한 사원의 이름('SCOTT'), 부서번호, 지정한 사원과 동일한 부서에서 
+ * 근무하는 사원이름을 출력하시오.
+ * 단, 각 열의 별칭은 이름, 부서번호, 동료로 하시오.
+ */
+
+/*
+ * 10.SELF JOIN을 사용하여 WARD 사원보다 늦게 입사한 사원의 이름과 입사일을 출력하시오.
+ * (입사일을 기준으로 오름차순 정렬)
+ */
+
+/*
+ * 11.SELF JOIN을 사용하여 관리자보다 먼저 입사한 모든 사원의 이름 및 입사일을 
+ * 관리자 이름 및 입사일과 함께 출력하시오.(사원의 입사일을 기준으로 정렬)
+ */
 
 
 
