@@ -79,7 +79,7 @@ where ★검색조건
 --[문제해결]
 select eno, ename, e.dno, dname --별칭 사용 : 두 테이블 모두 존재하므로 구분위해
 from employee e JOIN department d
-ON e.dno=d.dnow
+ON e.dno=d.dno
 WHERE eno=7788;
 
 
@@ -550,6 +550,10 @@ on e.manager=m.eno;
  */
 
 
+select ename 이름, e.dno 부서번호 , dname 부서이름
+from employee e join department d
+on e.dno=d.dno
+where ename='SCOTT';
 
 
 
@@ -559,10 +563,26 @@ on e.manager=m.eno;
  * 출력하시오.
  */
 
+
+
+
+
+
+
+
+
 /*
  * 3.(INNER) JOIN과 USING 연산자를 사용하여 10번 부서에 속하는 모든 담당 업무의 고유 목록
  * (한 번씩만 표시)을 부서의 지역명을 포함하여 출력하시오.
  */
+
+select dno 부서번호, job 업무명, loc 지역명
+from employee inner join department 
+using(dno)
+where dno=10;
+
+
+
 
 /*
  * 4.NATURAL JOIN을 사용하여 커미션을 받는 모든 사원의 이름, 부서이름, 지역명을 출력하시오.
@@ -597,14 +617,27 @@ on e.manager=m.eno;
  * (입사일을 기준으로 오름차순 정렬)
  */
 
+
+select m.ename, m.hiredate
+from employee e, employee m
+where m.hiredate > e.hiredate
+and e.ename='WARD'
+order by hiredate;
+
+
+
+
 /*
  * 11.SELF JOIN을 사용하여 관리자보다 먼저 입사한 모든 사원의 이름 및 입사일을 
  * 관리자 이름 및 입사일과 함께 출력하시오.(사원의 입사일을 기준으로 정렬)
  */
 
 
-
-
+select e.ename, e.hiredate, m.ename, m.hiredate
+from employee e, employee m
+where e.hiredate < m.hiredate 
+and e.manager = m.eno
+order by e.hiredate;
 
 
 

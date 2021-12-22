@@ -19,13 +19,13 @@ where hiredate < '1981/01/01'; --오직 숫자만 있는 것이 아니라 문자
 --10번 부서 소속 사원 중 직급이 MANAGER인 사원 검색
 
 select * from employee
-where dno=10 and jop='MANAGER';
+where dno=10 and job='MANAGER';
 
 
 --10번 부서 소속이거나 직급이 MANAGER인 사원 검색
 
 select * from employee
-where dno=10 or jop='MANAGER';
+where dno=10 or job='MANAGER';
 
 
 --10번 부서에 소속된 사원만 제외
