@@ -79,7 +79,7 @@ where ★검색조건
 --[문제해결]
 select eno, ename, e.dno, dname --별칭 사용 : 두 테이블 모두 존재하므로 구분위해
 from employee e JOIN department d
-ON e.dno=d.dno
+ON e.dno=d.dnow
 WHERE eno=7788;
 
 
@@ -545,6 +545,7 @@ on e.manager=m.eno;
 --<6장. 테이블 조인하기-혼자해보기>------------------------------------------------------------------------------
 
 
+
 /*
  * 1.EQUI 조인을 사용하여 SCOTT 사원의 부서번호와 부서이름을 출력하시오.
  */
@@ -556,6 +557,12 @@ on e.dno=d.dno
 where ename='SCOTT';
 
 
+select e.dno, dname
+from employee e, employee d
+where e.dno=d.dno --조인조건
+and lower(ename)='SCOTT' --검색조건
+
+
 
 
 /*
@@ -563,10 +570,9 @@ where ename='SCOTT';
  * 출력하시오.
  */
 
-
-
-
-
+select ename 사원이름, dname 부서이름, loc 지역명
+from employee e join department d
+on e.dno=d.dno; --조인조건
 
 
 
@@ -577,9 +583,10 @@ where ename='SCOTT';
  */
 
 select dno 부서번호, job 업무명, loc 지역명
-from employee inner join department 
-using(dno)
-where dno=10;
+from employee join department --중복 제거하므로 별칭 필요 x
+using(dno) --조인조건
+where dno=10; --검색조건
+
 
 
 
@@ -588,29 +595,86 @@ where dno=10;
  * 4.NATURAL JOIN을 사용하여 커미션을 받는 모든 사원의 이름, 부서이름, 지역명을 출력하시오.
  */
 
+select ename 이름, dname 부서이름, loc 지역명, commission 커미션
+from employee natural join department --자동:같은 dno로 조인 후 중복 제거 => 별칭 x
+where commission is not null;
+
+
 /*
  * 5.EQUI 조인과 WildCard를 사용하여 이름에 A가 포함된 모든 사원의 이름과 부서이름을 출력하시오.
  */
+
+select ename, dname 부서이름 
+from employee natural join department
+where ename like '%A%';
+
+
+select ename, dname
+from employee join department
+using(dno)
+where  ename like '%A%';
+
 
 /*
  * 6.NATURAL JOIN을 사용하여 NEW YORK에 근무하는 모든 사원의 이름, 업무, 부서번호, 부서이름을 
  * 출력하시오.
  */
 
+select ename 이름, job 업무, dno 부서번호, dname 부서이름
+from employee natural join department
+where loc='NEW YORK';
+
+
+
+
+
 /*
  * 7.SELF JOIN을 사용하여 사원의 이름 및 사원번호를 관리자 이름 및 관리자 번호와 함께 출력하시오.
  */
+
+
+select e.ename || '의 사원 번호는 ' || e.eno, m.ename || '의 관리자 번호는 ' || e.manager
+from employee e join employee m
+on e.manager = m.eno;
+
+
+select e.ename,e.eno. m.ename,m.eno
+from mployee e, employee m
+where e.mabaher = m.eno;
+ds
+
 
 /*
  * 8.'7번 문제'+ OUTER JOIN, SELF JOIN을 사용하여 '관리자가 없는 사원'을 포함하여 사원번호를
  * 기준으로 내림차순 정렬하여 출력하시오.
  */
 
+
+select e.ename || '의 사원 번호는 ' || e.eno, m.ename || '의 관리자 번호는 ' || e.manager
+from employee e , employee m
+where e.manager = m.eno(+)
+order by e.eno desc;
+
+
+
+
+
+
 /*
  * 9.SELF JOIN을 사용하여 지정한 사원의 이름('SCOTT'), 부서번호, 지정한 사원과 동일한 부서에서 
  * 근무하는 사원이름을 출력하시오.
  * 단, 각 열의 별칭은 이름, 부서번호, 동료로 하시오.
  */
+
+
+select e.ename 이름, e.dno 부서번호, m.ename
+from employee e join employee m
+on e.dno = m.dno
+where e.ename='SCOTT';
+
+
+
+
 
 /*
  * 10.SELF JOIN을 사용하여 WARD 사원보다 늦게 입사한 사원의 이름과 입사일을 출력하시오.
@@ -626,12 +690,10 @@ order by hiredate;
 
 
 
-
 /*
  * 11.SELF JOIN을 사용하여 관리자보다 먼저 입사한 모든 사원의 이름 및 입사일을 
  * 관리자 이름 및 입사일과 함께 출력하시오.(사원의 입사일을 기준으로 정렬)
  */
-
 
 select e.ename, e.hiredate, m.ename, m.hiredate
 from employee e, employee m
@@ -640,5 +702,31 @@ and e.manager = m.eno
 order by e.hiredate;
 
 
+--[조인 방법 1]---------------------------------------------
 
+select e.eno, e.ename, e.hiredate, e.manager, m.eno, m.ename, m.hiredate
+from employee e, employee m
+where e.manager=m.eno
+and e.hiredate < m.hiredate
+order by 3;
 
+--위에서 select 필요없는거 제거
+select e.ename as 사원이름, e.hiredate AS 사원입사일, m.ename as 관리자이름, m.hiredate as 관리자입사일
+from employee e, employee m
+where e.manager=m.eno
+and e.hiredate < m.hiredate
+order by 3;
+
+--[조인 방법 2]---------------------------------------------
+
+select e.eno, e.ename, e.hiredate, e.manager, m.eno, m.ename, m.hiredate
+from employee e join employee m
+on e.manager=m.eno
+where e.hiredate < m.hiredate
+order by 3;
+
+select e.ename as 사원이름, e.hiredate AS 사원입사일, m.ename as 관리자이름, m.hiredate as 관리자입사일
+from employee e join employee m
+on e.manager=m.eno
+where e.hiredate < m.hiredate
+order by 3;
