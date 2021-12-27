@@ -267,3 +267,425 @@ select eno, ename, salary
 from employee
 where salary > any (1300,800,950)
 order by 1;
+-- 결국 salary > 800의 범위가 나머지 범위를 다 포함함
+
+
+--[문제] 직급이 SALESMAN이 아니면서 
+--급여가 임의의 SALESMAN 보다 낮은 사원의 정보(사원이름, 직급, 급여) 출력
+--    (임의의=각각)
+
+--[1]. 직급 SALESMAN 급여 구하기
+select distinct salary --중복된 값 제외
+from employee
+where job = 'SALESMAN'; 
+
+--[2]. 
+select ename, job, salary
+from employee
+where job != 'SALESMAN' and salary < any (select distinct salary
+											from employee
+											where job = 'SALESMAN'); 
+-- salary < any (1300, 1250, 1500)의 서브 쿼리 결과 중 '최대값'보다 작다
+
+--위 결과 검증
+--[1]. SALESMAN 직급의 최대 급여 구하기
+select max(salary)
+from employee
+where job='SALESMAN';
+
+--[2].
+select ename, job, salary
+from employee
+where job != 'SALESMAN' and salary < (select distinct max(salary)
+										from employee
+										where job = 'SALESMAN'); 
+-- job ^= 'SALESMAN'
+-- job <> 'SALESMAN'
+-- job not loke 'SALESMAN'
+
+------------------------------------------------------------------------
+										
+										
+--3) ALL 연산자 : 서브 쿼리에서 반환되는 모든 값과 비교										
+--정리 : A조건  and B조건   -여러 조건을 동시에 만족
+--where salary > ALL(결과1, 결과2 ...) 쿼리 결과 중 '최대값'보다 크다
+--where salary < ALL(결과1, 결과2 ...) 쿼리 결과 중 '최소값'보다 작다
+			
+										
+										
+--[문제] 직급이 SALESMAN이 아니면서 
+--급여가 모든 SALESMAN 보다 낮은 사원의 정보(사원이름, 직급, 급여) 출력
+--    (모든=모두 동시에 만족)
+
+--[1]. 직급 SALESMAN 급여 구하기
+select distinct salary --중복된 값 제외
+from employee
+where job = 'SALESMAN'; 
+
+--[2]. 
+select ename, job, salary
+from employee
+where job != 'SALESMAN' and salary < all (select distinct salary
+											from employee
+											where job = 'SALESMAN'); 
+-- salary < all (1300, 1250, 1500)의 서브 쿼리 결과 중 '최소값'보다 작다
+
+--위 결과 검증
+--[1]. SALESMAN 직급의 최소 급여 구하기
+select min(salary)
+from employee
+where job='SALESMAN';
+
+--[2].
+select ename, job, salary
+from employee
+where job != 'SALESMAN' and salary < (select distinct min(salary)
+										from employee
+										where job = 'SALESMAN'); 							
+
+										
+-------------------------------------------------------------------------
+--4) EXISTS 연산자 : EXISTS=존재하다.
+select
+from
+where EXISTS (서브쿼리);
+--서브 쿼리에서 구해진 데이터가 1개라도 존재하면 true => 메인 쿼리 실행
+-- 					 1개라도 존재하지 않으면 false => 메인 쿼리 실행x			
+
+select
+from
+where NOT EXISTS (서브쿼리);
+--서브 쿼리에서 구해진 데이터가 1개도 존재하지 않으면 true => 메인 쿼리 실행
+-- 					 1개라도 존재하면 false => 메인 쿼리 실행x
+										
+							
+--[문제-1] 사원 테이블에서 직업이 'PRESIDENT'가 있으면 모든 사원 이름을 출력, 없으면 출력 안 함
+--★문제의 뜻 : 조건을 만족하는 사원이 있으면 메인 쿼리 실행하여 결과 출력
+
+--[1] 사원 테이블에서 직업이 'PRESIDENT'인 사람의 사원 번호
+select eno, job --7839
+from employee
+where job='PRESIDENT';
+
+--[2] 
+select ename
+from employee
+where EXISTS (select eno
+				from employee
+				where job='PRESIDENT');										
+								
+--위 문제를 테스트하기 위해 직업이 'PRESIDENT'인 사원 삭제 => [2]실행하면 결과 없음(오류x)
+delete
+from employee
+where job='PRESIDENT';
+			
+--다시 되돌리기 위해 직업이 'PRESIDENT'인 사원 추가
+
+
+
+--[위 문제에 job='SALESMAN' 추가함]
+--조건을 AND 연결 : 두 조건이 모두 참이면 참
+select ename
+from employee
+where job='SALESMAN' AND EXISTS (select eno
+								 from employee
+								 where job='PRESIDENT'); --4명 and 14명 => 4명							
+
+--조건을  OR 연결 : 두 조건 중 하나만 참이면 참
+select ename
+from employee
+where job='SALESMAN' OR EXISTS (select eno
+								 from employee
+								 where job='PRESIDENT'); --4명  or 14명 => 14명										
+--[NOT EXISTS]																				
+--조건을 AND 연결 : 두 조건이 모두 참이면 참
+select ename
+from employee
+where job='SALESMAN' AND NOT EXISTS (select eno
+								 	from employee
+								 	where job='PRESIDENT'); --4명 and 0명 => 0명								
+
+--조건을  OR 연결 : 두 조건 중 하나만 참이면 참
+select ename
+from employee
+where job='SALESMAN' OR NOT EXISTS (select eno
+								 	from employee
+								 	where job='PRESIDENT'); --4명  or 0명 => 4명									
+					
+								 	
+--[사원 테이블과 부서 테이블 모두 포함되는 것이 아닌 (한쪽에만 포함되는) 부서 번호, 부서 이름 조회] [과제 1] => dno 40출력
+
+
+
+
+
+						 
+--[문제-2] 사원 테이블에서 직업이 'PRESIDENT'가 없으면 모든 사원 이름을 출력, 있으면 출력 안 함
+--★문제의 뜻 : 조건을 만족하는 사원이 있으면 메인 쿼리 실행하여 결과 출력
+
+--[1] 사원 테이블에서 직업이 'PRESIDENT'인 사람의 사원 번호
+select eno, job --7839
+from employee
+where job='PRESIDENT';
+
+--[2] 
+select ename
+from employee
+where not EXISTS (select eno
+				  from employee
+				  where job='PRESIDENT');										
+								
+										
+										
+										
+--<7장.서브쿼리-혼자해보기>----------------------------------------------------------------------------------------
+
+				  
+--1.사원번호가 7788인 사원과 '담당업무가 같은' 사원을 표시(사원이름과 담당업무)
+
+--[1]
+select job
+from employee
+where eno=7788;
+
+--[2]	
+select ename, job
+from employee
+where job=(select job
+			from employee
+			where eno=7788);
+							  			  
+		
+				  
+--2.사원번호가 7499인 사원보다 급여가 많은 사원을 표시(사원이름과 담당업무)
+
+--[1]
+select salary --1600
+from employee
+where eno=7499;
+--[2]
+select ename, job
+from employee
+where salary > (select salary
+				from employee
+				where eno=7499);
+							
+		
+			
+--3.최소급여를 받는 사원의 이름, 담당 업무 및 급여 표시(그룹함수 사용)
+
+--[1]
+select min(salary)
+from employee;
+--[2]
+select ename, job, salary
+from employee
+where salary = (select min(salary)
+				from employee);
+
+			
+
+--4.'직급별' 평균 급여가 가장 적은 담당 업무를 찾아 '직급(job)'과 '평균 급여' 표시
+--단, 평균의 최소급여는 소수1째자리까지 표시
+
+				
+				
+				
+				
+--5.각 부서의 최소 급여를 받는 사원의 이름, 급여, 부서 번호 표시
+
+--[1]
+select min(salary),dno
+from employee
+group by dno;
+--[2]
+select ename, salary, dno
+from employee
+where (salary,dno) in (select min(salary),dno
+						from employee
+						group by dno);
+
+
+
+
+--6.'담당 업무가 분석가(ANALYST)인 사원보다 급여가 적으면서 업무가 분석가가 아닌' 
+--사원들을 표시(사원번호, 이름, 담당 업무, 급여)
+
+--[1]		
+select min(salary) --3000
+from employee
+where job='ANALYST';
+--[2]
+select eno, ename, job, salary
+from employee
+where job != 'ANALYST' and salary < (select min(salary) 
+									 from employee
+									 where job='ANALYST');
+
+						
+									 
+						
+--★★7.부하직원이 없는 사원이름 표시(먼저 '문제 8. 부하직원이 있는 사원이름 표시'부터 풀기)
+
+				 
+									 
+									 
+									 
+									 
+--★★8.부하직원이 있는 사원이름 표시
+
+--[1]
+select manager
+from employee;
+--[2]
+select ename
+from employee
+where eno in (select manager
+			  from employee);
+									 
+									 
+									 
+									 
+									 
+--9.BLAKE와 동일한 부서에 속한 사원이름과 입사일을 표시(단,BLAKE는 제외)
+
+--[1]
+select dno --30
+from employee
+where ename='BLAKE';
+--[2]			  
+select ename, hiredate
+from employee
+where ename!='BLAKE' and dno=(select dno
+							  from employee
+							  where ename='BLAKE');
+			  
+			  
+
+--10.급여가 평균 급여보다 많은 사원들의 사원번호와 이름 표시(결과는 급여에 대해 오름차순 정렬)
+
+--[1]
+select avg(salary) --2073.xx
+from employee;
+--[2]						
+select eno, ename, salary
+from employee
+where salary > (select avg(salary)	
+				from employee)
+order by salary;
+							  
+							  
+							  
+							  
+							  
+--11.이름에 K가 포함된 사원과 같은 부서에서 일하는 사원의 사원번호와 이름 표시
+
+--[1]
+select ename, dno
+from employee
+where ename like '%K%';
+--[2]
+select eno, ename
+from employee
+where dno in (select dno
+			  from employee
+			  where ename like '%K%');
+
+
+
+--12.부서위치가 DALLAS인 사원이름과 부서번호 및 담당 업무 표시
+
+--[1]
+select *
+from department
+where loc = 'DALLAS'		
+--[2]
+select ename, dno, job
+from employee
+where dno in (select dno
+			  from department
+			  where loc = 'DALLAS');
+			  
+			  
+			  
+
+--13.KING에게 보고하는 사원이름과 급여 표시
+
+--[1]
+select eno --7839
+from employee
+where ename = 'KING';	  
+--[2]		  
+select ename, salary
+from employee
+where manager = (select eno
+				 from employee
+				 where ename = 'KING');
+			  
+			  
+			  
+--14.RESEARCH 부서의 사원에 대한 부서번호, 사원이름, 담당 업무 표시
+
+--방법 1
+select dno, ename, job
+from employee
+where dno=20;
+				 
+--방법 2		
+--[1]	 
+select dno  --20
+from department
+where dname='RESEARCH';
+--[2]	 
+select dno, ename, job
+from employee
+where dno=(select dno  --20
+			from department
+			where dname='RESEARCH');
+
+
+
+				 
+--15.평균 급여보다 많은 급여를 받고 이름에 M이 포함된 사원과 같은 부서에서 근무하는 
+--사원번호,이름,급여 표시
+
+--해석 1. '이름에 M이 포함된 사원과 같은 부서에서 근무하는 사원'이 많은 급여를 받는 경우
+ 
+
+
+
+			
+--해석 2. '이름에 M이 포함된 사원'이 많은 급여를 받는 경우
+
+
+									 
+									 
+									 
+									 
+									 
+									 
+									 
+			
+--16.평균 급여가 가장 적은 업무와 그 평균급여 표시
+
+--[1] 업무별 평균 급여
+select avg(salary), job
+from employee
+group by job;
+--[2]
+
+	
+			
+			
+			
+			
+--17.담당 업무가 MANAGER인 사원이 소속된 부서와 동일한 부서의 사원이름 표시
+			
+
+			
+			
+			
+			
+			
+			
+			
