@@ -27,7 +27,7 @@ where salary > (select ename, salary
 										
 				
 				
---2)다중 행 서브쿼리 : 내부 서브 쿼리문의 결과가 행 '여러 개'
+--2)다중 행 서브쿼리 : 내부 서브 쿼리문의 결과가 행 '1개 이상'
 --				 다중행 비교연산자 (IN, any, some, all, exists)				
 --				ex. IN(1000,2000,3000) 
 
@@ -415,10 +415,65 @@ where job='SALESMAN' OR NOT EXISTS (select eno
 								 	
 --[사원 테이블과 부서 테이블 모두 포함되는 것이 아닌 (한쪽에만 포함되는) 부서 번호, 부서 이름 조회] [과제 1] => dno 40출력
 
+								 	
+--방법 1 : exists 사용
+--[1]		 
+select dno, dname
+from department d
+where EXISTS (select 1 --dno대신 1 사용 가능
+			  from employee e
+			  where d.dno = e.dno);	
+--[2]		  
+select dno, dname
+from department d
+where not EXISTS (select dno --10 20 30
+			  	  from employee --별칭 사용 안 해도 됨
+			 	  where d.dno = dno);	
+										
+			 	  
+--방법 2 : join 방법 1 사용
+--[1]
+select distinct e.dno, dname
+from employee e, department d
+where e.dno = d.dno; --10 20 30
 
+--[2]
+select distinct d.dno, dname --e.dno로 하면 10 20 30만 출력
+from employee e, department d
+where e.dno(+) = d.dno; --10 20 30 + 40까지 표시
+			 	  
+--[3]
+select distinct d.dno, dname
+from employee e, department d
+whee e.dno(+) = d.dno and dno not in (select distinct dno
+										from employee);
+--[3-2]			 	  
+select distinct d.dno, dname
+from employee e, department d
+whee e.dno(+) = d.dno and dno != all (select distinct dno
+										from employee);
+			 	  
+--방법 3 : minus 이용
+--[1]
+select dno, dname
+from department; -- 10 20 30 40
 
+--[2]
+select distinct e.dno, dname
+from employee e, department d
+where e.dno = d.dno; -- 10 20 30
 
+--[3] {10 20 30 40} -{10 20 30} = {40}
+select dno, dname
+from department
 
+minus
+
+select distinct e.dno, dname
+from employee e, department d
+where e.dno = d.dno;
+			 	  
+			 	  
 						 
 --[문제-2] 사원 테이블에서 직업이 'PRESIDENT'가 없으면 모든 사원 이름을 출력, 있으면 출력 안 함
 --★문제의 뜻 : 조건을 만족하는 사원이 있으면 메인 쿼리 실행하여 결과 출력
@@ -451,7 +506,7 @@ where eno=7788;
 --[2]	
 select ename, job
 from employee
-where job=(select job
+where job=(select job    -- = 대신 in , any, all 사용 가능
 			from employee
 			where eno=7788);
 							  			  
@@ -475,7 +530,7 @@ where salary > (select salary
 --3.최소급여를 받는 사원의 이름, 담당 업무 및 급여 표시(그룹함수 사용)
 
 --[1]
-select min(salary)
+select min(salary) --800
 from employee;
 --[2]
 select ename, job, salary
@@ -486,12 +541,35 @@ where salary = (select min(salary)
 			
 
 --4.'직급별' 평균 급여가 가장 적은 담당 업무를 찾아 '직급(job)'과 '평균 급여' 표시
---단, 평균의 최소급여는 소수1째자리까지 표시
+--단, 평균의 최소급여는 반올림하여 소수 1째 자리까지 표시
 
-				
-				
-				
-				
+--[1]
+select avg(salary), round(avg(salary),1) 
+from employee;
+--[2]
+
+--사원 전체의 평균 급여 최소값 
+select min(avg(salary))
+from employee;
+--오류: avg(salary) 출력 값은 1개이기 때문에 min max 값을 구하는 것은 모호함
+
+
+--★★그룹함수 최대 2회까지 중첩 가능				
+--round는 그룸함수 x
+select round(min(avg(salary)),1) 
+from employee
+group by job;
+
+--[2] 최종
+select job, avg(salary), round(avg(salary),1)
+from employee
+group by job
+having round(avg(salary),1) = (select round(min(avg(salary)),1)
+								from employee
+								group by job);
+
+
+
 --5.각 부서의 최소 급여를 받는 사원의 이름, 급여, 부서 번호 표시
 
 --[1]
@@ -522,7 +600,13 @@ where job != 'ANALYST' and salary < (select min(salary)
 									 from employee
 									 where job='ANALYST');
 
-						
+--[2-2]
+select eno, ename, job, salary
+from employee
+where salary < any (select min(salary) 
+				 	from employee
+				 	where job='ANALYST')
+	and job != 'ANALYST';		
 									 
 						
 --★★7.부하직원이 없는 사원이름 표시(먼저 '문제 8. 부하직원이 있는 사원이름 표시'부터 풀기)
@@ -556,7 +640,7 @@ where ename='BLAKE';
 --[2]			  
 select ename, hiredate
 from employee
-where ename!='BLAKE' and dno=(select dno
+where ename!='BLAKE' and dno=(select dno    -- = 대신 in 사용 권장, 이름이 같은 사람이 또 있을 경우 대비
 							  from employee
 							  where ename='BLAKE');
 			  
@@ -680,12 +764,3 @@ group by job;
 			
 			
 --17.담당 업무가 MANAGER인 사원이 소속된 부서와 동일한 부서의 사원이름 표시
-			
-
-			
-			
-			
-			
-			
-			
-			
