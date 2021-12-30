@@ -611,12 +611,18 @@ where salary < any (select min(salary)
 						
 --★★7.부하직원이 없는 사원이름 표시(먼저 '문제 8. 부하직원이 있는 사원이름 표시'부터 풀기)
 
-				 
+select ename
+from employee
+where eno not in ( select distinct manager
+					from employee
+					where manager is not null);
 									 
 									 
 									 
 									 
 --★★8.부하직원이 있는 사원이름 표시
+
+
 
 --[1]
 select manager
@@ -626,8 +632,7 @@ select ename
 from employee
 where eno in (select manager
 			  from employee);
-									 
-									 
+					 
 									 
 									 
 									 
@@ -690,6 +695,10 @@ where dno in (select dno
 			  from department
 			  where loc = 'DALLAS');
 			  
+--[12번 변경 문제] 부서 위치가 DALLAS인 사원이름과 부서번호 , 담당 업무, 부서위치 표시  - 과제 1
+
+			  
+			  
 			  
 			  
 
@@ -733,23 +742,38 @@ where dno=(select dno  --20
 --15.평균 급여보다 많은 급여를 받고 이름에 M이 포함된 사원과 같은 부서에서 근무하는 
 --사원번호,이름,급여 표시
 
---해석 1. '이름에 M이 포함된 사원과 같은 부서에서 근무하는 사원'이 많은 급여를 받는 경우
- 
+		
+--[1] 평균 급여
+select avg(salary)
+from employee;
+
+--[2] 이름에 M이 포함된 사원과 같은 부서번호
+select distinct dno
+from employee
+where ename like '%M%';
+
+--[3]
+select eno, ename, salary, dno
+from employee
+where salary > (select avg(salary)
+				from employee)
+and dno in (select distinct dno
+			from employee
+			where ename like '%M%');
+
+--[4] ★주의 : 이름에 M이 포함된 사원은 제외
+select eno, ename,salary,dno
+from employee
+where salary > (select avg(salary)
+				from employee)
+and dno in (select distinct dno
+			from employee
+			where ename like '%M%')
+and ename not like '%M%';
 
 
 
-			
---해석 2. '이름에 M이 포함된 사원'이 많은 급여를 받는 경우
 
-
-									 
-									 
-									 
-									 
-									 
-									 
-									 
-			
 --16.평균 급여가 가장 적은 업무와 그 평균급여 표시
 
 --[1] 업무별 평균 급여
@@ -763,4 +787,11 @@ group by job;
 			
 			
 			
---17.담당 업무가 MANAGER인 사원이 소속된 부서와 동일한 부서의 사원이름 표시
+--17.담당 업무가 MANAGER인 사원이 소속된 부서와 동일한 부서의 사원이름 표시			
+
+select ename
+from employee
+where dno in(select dno
+ 			 from employee
+			 where job='MANAGER')
+and job != 'MANAGER'

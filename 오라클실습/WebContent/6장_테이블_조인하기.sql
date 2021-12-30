@@ -16,7 +16,7 @@ from employee, department;
 
 select * -- 11개 컬럼, eno가 7369인 것만
 from employee, department
-where eno = 7369; --()조인 조건 아님검)색 조건
+where eno = 7369; --(조인 조건 아님)검색 조건
 
 
 --1.2 조인의 유형
@@ -77,10 +77,8 @@ where ★검색조건
 
 
 --[문제해결]
-select eno, ename, e.dno, dname --별칭 사용 : 두 테이블 모두 존재하므로 구분위해
-from employee e JOIN department d
-ON e.dno=d.dnow
-WHERE eno=7788;
+
+
 
 
 ----------------------------------------------------------[방법 1]과 [방법 2]는 문법적 특징이 동일
