@@ -697,9 +697,16 @@ where dno in (select dno
 			  
 --[12번 변경 문제] 부서 위치가 DALLAS인 사원이름과 부서번호 , 담당 업무, 부서위치 표시  - 과제 1
 
-			  
-			  
-			  
+select dno
+from department
+where loc = 'DALLAS';  
+
+select ename, d.dno, job, loc
+from employee e, department d
+where e.dno=d.dno
+and d.dno in (select dno
+				from department
+				where loc = 'DALLAS');
 			  
 
 --13.KING에게 보고하는 사원이름과 급여 표시
