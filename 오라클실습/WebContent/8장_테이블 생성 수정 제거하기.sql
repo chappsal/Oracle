@@ -244,3 +244,102 @@ RENAME dept2_copy TO dept2;
 
 select *
 from dept2;
+
+
+
+
+--------------- 혼자해보기 -----------------------------------------------------------
+
+
+--1. 다음 표에 명시된 대로 DEPT 테이블을 생성하시오
+
+
+create table dept (
+		dno number(2)
+		dname varchar2(14)
+		loc varchar2(13));
+
+
+--2. 다음 표에 명시된 대로 EMP 테이블을 생성하시오
+
+		
+create table emp(
+		eno number(4)
+		ename varchar2(10)
+		dno number(2));
+		
+		
+--3. 긴 이름을 저장할 수 있도록 EMP 테이블을 수정하시오 (ENAME 칼럼의 크기)
+
+	
+alter table emp
+modify ename varchar2(25);
+		
+		
+		
+--4. EMPLOYEE 테이블을 복사해서 EMPLOYEE2란 이름의 테이블을 생성하되 사원번호, 이름, 급여, 부서번호 칼럼만 복사하고 
+-- 새로 생성된 테이블의 칼럼명은 각각 EMP_ID, NAME, SAL, DEPT_ID로 지정하시오
+
+
+create table employee2(emp_id, name, sal, dept_id)
+as
+select eno, ename, salary, dno
+from employee
+where 0=1;
+
+
+
+
+--5. EMP 테이블을 삭제하시오
+
+
+drop table emp;
+
+
+
+--6. EMPLOYEE2란 테이블을 EMP로 변경하시오
+
+
+rename employee2 to emp;
+
+
+
+
+--7. DEPT 테이블에서 DNAME 칼럼을 제거하시오
+
+
+alter table dept
+drop column dname;
+
+
+
+
+--8. DEPT 테이블에서 LOC 칼럼을 UNUSED로 표시하시오
+
+
+alter table dept
+set unused (loc);
+
+
+
+
+
+--9. UNUSED 칼럼을 모두 제거하시오.
+
+
+alter table dept
+drop unused cloumns;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
