@@ -175,11 +175,19 @@ RENAME column ename TO ename2;
 
 
 --[문제] 테이블 dept2에서 컬럼 기본 값 지정
+--변경 안 됨 : ename2에 데이터가 null로 입력된 상태이므로 컬럼 변경 안 됨 
 alter table dept2
-MODIFY ename2 varchar2(40) DEFAULT 'AA';
+MODIFY ename2 varchar2(40) DEFAULT 'AA' not null;
 
+--해결 : 구조는 두고 데이터만 삭제 후 다시 기본값 지정
+truncate table dept2;
 
+select * from dept2;
 
+alter table dept2
+MODIFY ename2 varchar2(40) DEFAULT '기본' not null;
+
+-------------------------------------------------------------------------------
 
 --★★DROP, SET unused : 둘 다 실행한 후 되돌릴 수 없음. 그러나 다시 같은 이름의 컬럼 생성 가능
 --2.3 컬럼 제거 : 2개 이상 컬럼이 존재한 테이블에서만 컬럼 삭제 가능
@@ -245,18 +253,149 @@ RENAME dept2_copy TO dept2;
 select *
 from dept2;
 
+--[4] 마지막: 제약조건 다시 생성해야 함
+
+-----------------------------------------------------------------------------------------------
+
+--3. 테이블명 변경 : rename 기존이름 to 새이름;
+rename dept2 to emp2;
+
+
+--4. 테이블 구조 제거 : drop  table 테이블명;
+
+--★★ [department 테이블 제거방법 1]
+--삭제할 테이블의 기본키(PK), 고유키(유일한 값을 가지는 키, 모두 다 다른 값을 가짐)를 다른 테이블에서 참조하고 있는 경우에는 삭제 불가능 
+--그래서 '참조하는 테이블(자식 테이블)' 먼저 제거 후 부모 테이블 제거
+
+drop table employee; --자식 테이블 먼저 제거
+drop table department;
+
+
+--★★ [department 테이블 제거방법 2]
+--사원 테이블의 '참조키 제약조건까지 함께 제거' (참조키 제약조건 : 참조하는 상황을 제거)
+drop table department cascade constraints; --s : 제약조건'들'
+
+--종속관계 확인
+select table_name, constraint_name, constraint_type -- 테이블 이름, 제약조건 이름, 타입 --P:PK기본키 , R:참조키
+from user_constraints
+--table_name : 대문자 -> 소문자 변경하여 찾음 (아래 두 방법중 택 1)
+where lower(table_name) in ('employee','department');
+--where table_name in ('EMPLOYEE', 'DEPARTMENT');
+
+
+--5. 테이블의 모든 데이터만 제거 : truncate table
+--테이블 구조는 유지, 테이블에 생성된 제약 조건과 연관된 인덱스 , 뷰, 동이어는 유지됨
+select *  from emp2; 
+insert into emp2 values(1, 'kim', 2500, '2022-01-03', default);
+select *  from emp2; --조회 후
+
+truncate table emp2; --데이터만 제거
+select *  from emp2; 
+
+
+--6. 데이터 사전 : 사용자와 DB 자원을 효율적으로 관리하기 위해 다양한 정보를 저장하는 시스템 테이블 집합
+--사용자가 테이블을 생성하거나 사용자를 변경하는 등의 작업을 할 때
+--DB 서버에 의해 자동 갱신되눈 테이블
+--사용자가 직접 수정, 삭제 불가 => '읽기 전용 뷰'로 사용자에게 정보 제공
+
+
+--6.1 USER_데이터 사전 : USER_로시작~S(복수)로 끝남
+--사용자와 가장 밀접하게 관련된 뷰로  자신이 생성한 테이블, 뷰, 인덱스, 동의어 등의 객체나 해당 사용자에게 권한 정보 제공
+--ex. USER_tables로 사용자가 소유한 '테이블'에 대한 정보 조회
+select *
+from USER_tables; --사용자(system)가 소유한 '테이블' 정보
+
+
+select sequence_name, min_value, max_value, inncrement by, cycle_flag 
+from USER_sequences; --사용자가 소유한 '시퀀스' 정보 (292p)
+
+
+select index_name
+from user_indexs; --사용자가 소유한 'index' 정보
+
+select view_name
+from user_views --사용자가 소유한 '뷰' 정보
+
+--테이블의 제약  조건 보려면 'USER_constraints' 데이터 사전 사용함
+select table_name. constraint_name, constraint_type
+from user_constrains
+where table_name IN ('EMPLOYEE'); -- ★★주의: 1.반드시 대문자
+--where lower(table_name) in ('employee') --2. LOWER()함수 사용하여 소문자로 변경
 
 
 
---------------- 혼자해보기 -----------------------------------------------------------
+
+-- 객체 : 테이블, 시퀀스, 인덱스, 뷰 등
+--6.2 . ALL_데이터 사전
+--전체 사용자와 관련된 뷰, 사용자가 접근할 수 있는 모든 객체 정보 조회
+--owner : 조회 중인 객체가 누구의 소유인지 확인
+
+
+--ex. ALL_tables로 테이블에 대한 정보 조회
+
+-- 사용자  : system 일 때 - 500레코드 (레코드:한줄), SYS와 SYSTEM만 : 사용자(HR:교육용) 제외된 상태로 결과가 나옴
+--	    :   hr 	  일 때 - 78레코드 (사용자 hr과 다른 사용자를 포함한 결과 나옴)
+
+select owner, table_name 
+from ALL_tables; 
+--where owner in ('SYSTEM') or table_name in ('EMPLOYEE', 'DEPARTMENT');
+--where table_name in ('EMPLOYEE', 'DEPARTMENT');
+
+
+--where절에 owner in ('HR') 추가하여 조회하면 사용자(HR)에 대한 결과가 나옴 
+select owner, table_name 
+from ALL_tables
+where owner in ('HR');
+
+
+
+
+--6.3. DBA_데이터 사전 : 시스템 관리와 관련된 뷰, DBA나 시스템 권한을 가진 사용자만 접근 가능
+--현재 접속한 사용자가 hr(교육용 계정)이라면 'DBA_데이터 사전'을 조회할 권한 없음
+--DBA 권한 가진 system 계정으로 접속해야 테스트 가능
+
+
+--ex) DBA_tables로 테이블에 대한 정보 조회
+-- 사용자  : system 일 때 - 500레코드 (레코드:한줄), SYS와 SYSTEM만 : 사용자(HR:교육용) 제외된 상태로 결과가 나옴
+--					   ALL_tables로 조회한 정보와 같은 결과
+--	    :   hr 	  일 때 - 실패(table or view does not exist) : DBA 권한 없어서
+
+select owner, table_name 
+from DBA_tables; 
+
+
+select owner, table_name 
+from DBA_tables
+where owner in ('HR');
+
+----------------------------------------------------------------------------------------------
+
+
+/* [RUN SQL CommanLine에서 HR로 접속하는 방법]
+	
+	1. RUN SQL...창 열기
+	conn hr/hr 
+	=>실패 : account is lock (=계정 비활성화)
+
+ 	2. 계정을 활성화시키기 위해 관리자 계정 접속
+ 	conn system/1234
+ 	alter user hr identified by hr account unlock;
+ 	
+ 	3. 다시 hr로 접속
+ 	conn hr/hr
+
+*/
+
+
+--[혼자해보기]-------------------------------------------------------------------------------------
 
 
 --1. 다음 표에 명시된 대로 DEPT 테이블을 생성하시오
 
 
 create table dept (
-		dno number(2)
-		dname varchar2(14)
+		dno number(2),
+		dname varchar2(14),
 		loc varchar2(13));
 
 
@@ -264,8 +403,8 @@ create table dept (
 
 		
 create table emp(
-		eno number(4)
-		ename varchar2(10)
+		eno number(4),
+		ename varchar2(10),
 		dno number(2));
 		
 		
@@ -329,6 +468,7 @@ set unused (loc);
 
 alter table dept
 drop unused cloumns;
+
 
 
 
