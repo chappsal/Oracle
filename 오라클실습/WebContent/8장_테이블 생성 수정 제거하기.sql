@@ -419,13 +419,36 @@ modify ename varchar2(25);
 --4. EMPLOYEE 테이블을 복사해서 EMPLOYEE2란 이름의 테이블을 생성하되 사원번호, 이름, 급여, 부서번호 칼럼만 복사하고 
 -- 새로 생성된 테이블의 칼럼명은 각각 EMP_ID, NAME, SAL, DEPT_ID로 지정하시오
 
-
+--[방법1]
 create table employee2(emp_id, name, sal, dept_id)
 as
 select eno, ename, salary, dno
 from employee
 where 0=1;
 
+
+--[방법2]
+--[1]
+create table employee2
+as
+select eno, ename, salary, dno
+from employee
+where 0=1;
+
+select * from employee2;
+
+--[2]
+alter table employee2
+rename column eno to emp_id;
+
+alter table employee2
+rename column ename to name;
+
+alter table employee2
+rename column salary to sal;
+
+alter table employee2
+rename column dno to dept_id;
 
 
 
@@ -468,6 +491,7 @@ set unused (loc);
 
 alter table dept
 drop unused cloumns;
+
 
 
 

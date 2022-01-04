@@ -20,7 +20,7 @@ drop table salgrade;
 
 --먼저, 부서정보 테이블을 만든다.(사원정보 테이블에서 참조하고 있으면)
 create table department(
-dno number(2) primary key,--부서번호를 기본키(=primary key:중복X, unique유일한)로.(Mysql : int)
+dno number(2) primary key,--부서번호를 기본키(=primary key:중복X(=unique유일한) + not null)로.(Mysql : int) , 가변크기 안 적으면 기본값으로 들어감 (38?)
 dname varchar2(14),--부서명:가변크기(Mysql : varchar)
 loc varchar2(13)--지역명
 );
@@ -56,7 +56,6 @@ dno number(2) references department--부서번호(외래키=참조키=FK)
 
 --INSERT INTO EMPLOYEE VALUES
 --(7001,'LEE','CLERK', 7902,'1980/12/17',800,NULL,20);
-
 
 
 INSERT INTO EMPLOYEE VALUES
@@ -173,3 +172,4 @@ from employee;
 --sysdate:컴퓨터로부터 오늘 날짜 (주의! 괄호 없음)
 select sysdate from employee; --14행이면 14행 출력
 select sysdate from dual; --오늘 날짜 한 번만 출력
+
