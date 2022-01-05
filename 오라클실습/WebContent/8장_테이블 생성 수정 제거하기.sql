@@ -505,5 +505,3 @@ drop unused cloumns;
 
 
 
-
-

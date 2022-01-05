@@ -696,6 +696,28 @@ where dno in (select dno
 			  where loc = 'DALLAS');
 			  
 --[12번 변경 문제] 부서 위치가 DALLAS인 사원이름과 부서번호 , 담당 업무, 부서위치 표시  - 과제 1
+--[방법 1] 조인 방법 -1
+select ename, e.dno, job, loc
+from employee e, department d
+where e.dno=d.dno
+and loc='DALLAS';
+			  
+--[방법 2] 조인 방법-2
+select ename, e.dno, job, loc
+from employee e join department d
+on e.dno=d.dno
+where loc='DALLAS';
+	
+--[방법 3] 조인 방법 3
+select ename, dno, job, loc
+from employee natural join department 
+where loc='DALLAS';
+
+--[방법 4] 조인 방법 4
+select ename, dno, job, loc
+from employee join department 
+using (dno)
+where loc='DALLAS';
 
 			  
 			  

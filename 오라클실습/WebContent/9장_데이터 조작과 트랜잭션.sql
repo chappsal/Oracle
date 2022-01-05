@@ -179,9 +179,227 @@ select dno
 from department
 where dname = 'SALES';
 
-delete from emp_copy
+delete from emp_copy --from 생략 가능
 where dno=(select dno
 			from department
-			where dname = 'SALES')
+			where dname = 'SALES');
+
+select * from emp_copy;
+
+---------------------------------------------------------------------------------------
+--★★이클립스는 자동 commit되어 있으므로 수동으로 환경설정 후 테스트하기
+
+--4. 트랜잭션 관리
+--오라클은 트랜잭션 기반으로 데이터의 일관성을 보장함
+
+--ex) 두개의 계좌
+--'출금 계좌의 출금 금액'과 '입금 계좌의 입금 금액'이 동일해야함
+-- update			insert
+--반드시 두 작업은 함께 처리되거나 함께 취소되어야 함
+--출금 처리는 되었는데 입금 처리가 되지 않았다면 데이터 일관성을 유지 못 함
+
+--[트랜잭션 처리 요건] : ALL-OR-NOTHING 반드시 처리되거나 안되거나
+--				     데이터의 일관성을 유지, 안정적으로 데이터 복구
+
+--commit : '데이터 추가, 수정, 삭제' 등 실행됨과 동시에 트랜잭션이 진행됨
+--			성공적으로 변경된 내용 영구 저장위해 반드시 commit
+
+--rollback : 작업을 취소
+--			  트랜잭션으로 인한 하나의 묶음 처리가 시작되기 이전 상태로 되돌림
+
+--실습위해 기존 부서 테이블의 구조와 데이터 복사 -> 새 테이블 (제약조건 복사 x, not null 제외)
+
+drop table dept_copy;
+
+create table dept_copy
+as
+select *
+from department;
+
+select * from dept_copy;
+
+--★★ 여기서부터는 RUN SQL~에서 테스트하기
+delete from dept_copy; --모든 row 다 삭제
+select * from dept_copy; --확인
+
+rollback; --이전으로 되돌림 (commit전에)
+select * from dept_copy; --확인: 모든 row 다 나타남 
+
+--10번 부서만 삭제 후 -> savepoint로 이 지점을 d10 이름으로 저장
+delete from dept_copy where dno=10;
+savepoint d10;
+
+--20번 부서만 삭제
+delete from dept_copy where dno=20;
+
+--30번 부서만 삭제
+delete from dept_copy where dno=30;
+
+--d10 지점으로 되돌림 (226라인)
+rollback to d10;
+
+commit --영구 저장됨
+
+--다시 20번 부서만 삭제
+delete from dept_copy where dno=20;
+
+--이전으로 되돌림
+rollback;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+--[혼자해보기]-------------------------------------------------------------------------------------
+
+
+--1. emp 테이블의 구조만 복사하여 emp_insert란 이름의 빈 테이블을 만드시오
+
+create table emp_insert
+as
+select *
+from employee
+where 0=1;
+
+select * from emp_insert;
+
+
+--2. 본인을 emp_insert 테이블에 추가하되 sysdate를 이용해서 입사일을 오늘로 입력하시오
+
+insert into emp_insert
+values ()
+
+
+--3. emp_insert 테이블에 옆 사람을 추가하되 to_date 함수를 이용해서 입사일을 어제로 입력하시오
+
+--4. employee 테이블의 구조와 내용을 복사하여 emp_copy란 이름의 테이블을 만드시오
+
+drop table emp_copy;
+
+create table emp_copy
+as
+select *
+from employee;
+
+select * from emp_copy;
+
+
+--5. 사원번호가 7788인 사원의 부서번호를 10번으로 수정하시오
+
+update emp_copy
+set dno=10
+where eno=7788;
+
+
+--6. 사원번호 7788의 담당 업무 및 급여를 사원번호 7499의 담당 업무 및 급여와 일치하도록 갱신하시오
+
+select job, salary --SALESMAN , 1600
+from emp_copy
+where eno=7499;
+
+
+update emp_copy
+set job=(select job
+			from emp_copy
+			where eno=7499),
+	salary=(select salary
+			from emp_copy
+			where eno=7499)
+where eno=7788;
+
+
+select job, salary
+from emp_copy
+where eno=7788;
+
+
+--7. 사원번호 7369와 업무가 동일한 모든 사원의 부서번호를 사원 7369의 현재 부서번호로 갱신하시오
+
+select job,dno --CLERK, 20
+from emp_copy
+where eno=7369;
+
+update emp_copy
+set dno=(select dno 
+			from emp_copy
+			where eno=7369)
+where job=(select job 
+			from emp_copy
+			where eno=7369);
+
+select job, dno
+from emp_copy
+where job='CLERK';
+
+
+--8. department 테이블의 구조와 내용을 복사하여 dept_copy란 이름의 테이브을 만드시오
+
+select * from dept_copy;
+
+drop table dept_copy;
+
+create table dept_copy
+as
+select *
+from department;
+
+
+
+--9. dept_copy 테이블에서 부서명이 research인 부서를 제거하시오
+
+delete from dept_copy
+where dname='RESEARCH';
+
+
+
+--10. dept_copy 테이블에서 부서 번호가 10이거나 40인 부서를 제거하시오
+
+delete from dept_copy
+where dno=10 or dno=40;
+
+select * from dept_copy;
 
 
