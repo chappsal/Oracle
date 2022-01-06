@@ -249,50 +249,6 @@ rollback;
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 --[혼자해보기]-------------------------------------------------------------------------------------
 
 
@@ -310,10 +266,13 @@ select * from emp_insert;
 --2. 본인을 emp_insert 테이블에 추가하되 sysdate를 이용해서 입사일을 오늘로 입력하시오
 
 insert into emp_insert
-values ()
+values(9090, '홍길동','ANALYST', null, to_date(20220105,'yyyymmdd'),3000,null,20)
 
 
 --3. emp_insert 테이블에 옆 사람을 추가하되 to_date 함수를 이용해서 입사일을 어제로 입력하시오
+
+insert into emp_insert
+values(9091, '','ANALYST', null, to_date(20220104,'yyyymmdd'),3000,null,20)
 
 --4. employee 테이블의 구조와 내용을 복사하여 emp_copy란 이름의 테이블을 만드시오
 
@@ -399,7 +358,6 @@ where dname='RESEARCH';
 
 delete from dept_copy
 where dno=10 or dno=40;
+--where dno in (10,40);
 
 select * from dept_copy;
-
-
