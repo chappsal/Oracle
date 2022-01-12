@@ -723,6 +723,9 @@ where loc='DALLAS';
 			  
 			  
 			  
+			  
+			  
+			  
 
 --13.KING에게 보고하는 사원이름과 급여 표시
 
@@ -816,4 +819,4 @@ from employee
 where dno in(select dno
  			 from employee
 			 where job='MANAGER')
-and job != 'MANAGER'
+and job != 'MANAGER';
