@@ -1,3 +1,20 @@
+/****************************************************************** 
+
+  참조: 오라클 실행 순서
+http://myjamong.tistory.com/172
+
+from -> where -> group by -> having -> select -> order by
+
+따라서 where절에서 별칭 인식 못 함 (즉 where + 별칭 사용 불가)
+
+단, 아래는 가능 
+select *
+from (select salary as "급여" from 사원테이블)
+where "급여" > 100;
+
+********************************************************************/
+
+
 --<북스-5장>그룹 함수: '하나 이상의 행을 그룹으로 묶어 연산'하여 종합, 평균 등 결과를 구함
 -- ★★주의: count(*)함수를 제외한 모든 그룹함수들은 null값을 무시 , conut()괄호안에 다른게 들어가면 null값 무시
 
@@ -9,6 +26,7 @@ avg(salary),
 max(salary), 
 min(salary)
 from employee;
+--전체 사원 테이블이 대상이면 group by 사용 안 함 ( 전체가 하나의 그룹이므로)
 
 --max(), min()함수는 숫자 데이터 이외에 다른 '모든 데이터 유형'에 사용 가능
 
@@ -399,3 +417,4 @@ sum(salary) as "총액"
 from employee
 group by job,dno
 order by dno;
+

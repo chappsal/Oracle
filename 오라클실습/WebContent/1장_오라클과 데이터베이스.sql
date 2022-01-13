@@ -50,6 +50,8 @@ dno number(2) references department--부서번호(외래키=참조키=FK)
 -- department 테이블에서는 dno 가 반드시 기본키로 존재해야 한다.
 );
 
+--primary key를 여러 컬럼에 추가하려면 맨 마지막에 작성
+--primary key(eno, ename)
 
 --INSERT INTO EMPLOYEE VALUES
 --(7000,'KIM','CLERK', 7902,'1980-12-17',800,NULL,20);
@@ -172,4 +174,9 @@ from employee;
 --sysdate:컴퓨터로부터 오늘 날짜 (주의! 괄호 없음)
 select sysdate from employee; --14행이면 14행 출력
 select sysdate from dual; --오늘 날짜 한 번만 출력
+
+
+
+
+
 
