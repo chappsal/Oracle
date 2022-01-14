@@ -2,7 +2,7 @@
 
 create table [schema:소유자 이름(=사용자 계정)] table명( --schema: 스키마
 컬럼명1 데이터 타입(길이) [not null | null | unique | default 표현 | check(체크조건)]
-[[constraint 제약조건명(테이블명_컬럼명_pk) | primary key | constraint 제약조건명(테이블명_컬럼명_fk)] foreign key references 참조테이블명], --[]는 모두 옵션
+[[[constraint 제약조건명(테이블명_컬럼명_pk)] | primary key | [constraint 제약조건명(테이블명_컬럼명_fk)] | [foreign key]]  references 참조테이블명], --[]는 모두 옵션
 컬럼명2...,
 컬럼명n...,
 
@@ -148,6 +148,102 @@ where eno = 9000;
 
 --삽입 방법-2 정리 : 제약조건 잠시 비활성화시켜 원하는 데이터를 삽입하더라도 다시 제약조건 활성화시키면 오류 발생하여
 --				삽입한 데이터를 삭제해야 함
+
+--★★★삭제(부모에서)-부서 테이블에서 삭제할 때
+drop table department;
+--unique/primary keys in table referenced by foreign keys
+--자식만 employee에서 참조하는 상황에서는 삭제 안 됨
+
+----1. 부모 테이블 생성 : 실습위해 department 복사하여 department2 테이블 생성
+create table department2
+as
+select * from department; --★주의 : 제약조건 복사 불가
+
+select * from department2;
+
+----제약조건 확인 시 결과 없음
+select constraint_name, constraint_type, status
+from user_constraints
+where lower(table_name) in ('department2');
+
+----primary key 제약조건 추가 (단, 제약조건명 직접 만들어 추가) : 제약조건 복사 불가하므로
+alter table department2
+add constraint department2_dno_pk primary key(dno);
+
+----2. 자식 테이블 생성
+create table emp_second(
+eno number(4) constraint emp_second_eno_pk primary key,
+ename varchar2(10),
+job varchar2(9),
+salary number(7,2) default 1000 check(salary > 0),
+dno number(2), --constraint emp_second_dno_fk foreign key references department2 on delete cascade --(FK=참조키=외래키)컬럼레벨
+
+--테이블 레벨에서만 가능 : ON DELETE 옵션
+constraint emp_second_dno_fk foreign key(dno) references department2(dno)
+on delete cascade
+);
+
+
+/*
+
+== ON DELETE 뒤에 ==
+1. no action (기본값) : 부모 테이블 값이 자식 테이블에서 참조하고 있으면 부모 삭제 불가
+      ※ restrict(MY SQL에서 기본 값, no action과 같은 의미로 사용 )
+
+      ※ 오라클에서의 restrict는 no action과 약간의 차이가 있음
+
+2. cascade : 참조되는 '부모테이블의 값이 삭제'되면 연쇄적으로 '자식 테이블이 참조하는 값 역시 삭제'
+			 ex) 부서 테이블의 부서번호 40 삭제할 때 사원 테이블의 부서번호 40도 삭제됨
+
+3. set null : 부모 테이블의 값이 삭제되면 해당 참조하는 자식 테이블의 값들은 null값으로 설정 
+			  (단, null 허용한 경우) 
+			  ex) 부서 테이블의 부서번호 40 삭제할 때 사원 테이블의 부서번호가 null로 변경
+																		
+4. set default : 자식의 관련 튜플을 미리 설정한 값으로 변경
+				 ex) 부서 테이블의 부서번호 40 삭제할 때 사원 테이블의 부서번호를 default 값으로 변경
+				  이 제약조건이 실행하려면 모든 참조키 열에 기본 정의가 있어야 함
+				  컬럼이 null을 허용하고 명시적 기본 값이 설정되어 있지 않은 경우 null은 해당 열의 암시적 기본 값이 된다
+			
+
+ */
+
+insert into emp_second values(1, '김', '영업', null, 30);
+insert into emp_second values(2, '이', '조사', 2000, 20);
+insert into emp_second values(3, '박', '운영', 3000, 40);
+insert into emp_second values(4, '조', '상담', 3000, 20);
+
+
+--1.6 DEFAULT 정의
+--default 값 넣는 2가지 방법
+insert into emp_second(eno, ename, job,dno) values(5, '김', '영업', 30); --salary:default 1000
+insert into emp_secon values(6, '이', default, 30); --salary:default 1000
+
+select * from emp_second;
+select * from department2;
+
+--부모에서 dno=20 삭제하면 자식에서 참조하는 행도 삭제됨
+--이유? ON DELETE CASCADE
+delete department2 where dno=20;
+
+delete department where dno=20; --실패 이유? 자식에서 참조하고 있으면 부모의 행 삭제 불가
+
+
+--테이블 전체(구조+데이터) 제거 : 실패? 현재 사원 테이블의 참조 키로 참조하고 있으므로 테이블 아예 삭제 안 됨
+drop table department2;
+
+
+--테이블 데이터만 삭제
+truncate table department2; --불가: rollback 불가
+delete from department2; --성공: rollback 가능
+
+
+select * from department2; --부모에서 모든 데이터 다 삭제하면
+select * from emp_second; --자식에서도 모든 데이터 다 삭제 됨
+
+
+
+
+
 
 
 
