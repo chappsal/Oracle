@@ -135,6 +135,7 @@ disable constraint SYS_C007012; --constraint_type이 R인 것의 이름
 insert into employee(eno, ename, dno) values(9000, '홍길동', 50);
 --values(8000, '홍길동', 50) --이미 8000은 그전에 삽입한 상태
 
+
 --[3] 다시 활성화 : 오류 발생
 alter table employee
 enable constraint SYS_C007012; 
@@ -178,7 +179,7 @@ job varchar2(9),
 salary number(7,2) default 1000 check(salary > 0),
 dno number(2), --constraint emp_second_dno_fk foreign key references department2 on delete cascade --(FK=참조키=외래키)컬럼레벨
 
---테이블 레벨에서만 가능 : ON DELETE 옵션
+--'테이블 레벨'에서만 가능 : ON DELETE 옵션
 constraint emp_second_dno_fk foreign key(dno) references department2(dno)
 on delete cascade
 );
@@ -232,16 +233,208 @@ delete department where dno=20; --실패 이유? 자식에서 참조하고 있�
 drop table department2;
 
 
---테이블 데이터만 삭제
+--테이블 데이터만 삭제(구조는 남김)
 truncate table department2; --불가: rollback 불가
-delete from department2; --성공: rollback 가능
+delete from department2; --★★성공: rollback 가능
 
 
 select * from department2; --부모에서 모든 데이터 다 삭제하면
 select * from emp_second; --자식에서도 모든 데이터 다 삭제 됨
 
 
+--1.5 check 제약 조건 : 값의 범위, 조건 지정
+--currval, nextval, rownum 사용 불가
+--sysdate, user와 같은 함수 사용 불가
 
+
+--[test위해] 
+--[1] emp_second drop => department2 drop
+drop table emp_second;
+drop table department2;
+--[2] department2 생성 => emp_second 생성
+create table department2
+as
+select * from department; --★주의: 제약조건 복사 불가
+
+
+alter table department2
+add constraint department2_dno_pk primary key(dno); 
+
+
+--[2-2] emp_second 생성
+create table emp_second(
+eno number(4) constraint emp_second_eno_pk primary key,
+ename varchar2(10),
+job varchar2(9),
+salary number(7,2) default 1000 check(salary > 0),
+dno number(2),
+constraint emp_second_dno_fk foreign key(dno) references department2(dno)
+on delete cascade
+);
+
+
+--check(salary > 0)
+insert into emp_second values(4, '조', '상담', -3000, 30);
+--오류: check constraint (SYSTEM>SYS_C007058) violated
+
+insert into emp_second values(4, '조', '상담', 3000, 30); --성공
+
+------------------------------------------------------------------------------------
+
+
+--2.제약 조건 변경하기
+--2.1 제약 조건 추가 : alter table 테이블명 + add constraint 제약조건명 + 제약조건
+--단, null 무결성 제약 조건은 alter table 테이블명 + add~로 추가하지 못 함
+--					  alter table 테이블명 + modify로 null 상태로 변경 가능
+--   default 정의할 때도    alter table 테이블명 + modify로
+
+
+
+--[test위해]
+--drop table dept_copy;
+--drop table employee;
+
+create table dept_copy
+as
+select * from department; --제약조건 복사 x
+
+create table emp_copy
+as
+select * from employee; --제약조건 복사 x
+
+
+select table_name, constraint_name
+from user_constraints
+where table_name in ('DEPARTMENT', 'EMPLOYEE', 'DEPT_COPY', 'EMP_COPY');
+
+
+
+--ex.기본키 제약조건 추가하기
+alter table emp_copy
+add constraint emp_copy_eno_pk primary key(eno);
+
+alter table dept_copy
+add constraint dept_copy_dno_pk primary key(dno);
+
+--추가된 제약조건 확인
+select table_name, constraint_name
+from user_constraints
+where table_name in ('DEPARTMENT', 'EMPLOYEE', 'DEPT_COPY', 'EMP_COPY');
+
+
+
+--(ex2) 외래키=참조키 제약조건 추가하기
+alter table emp_copy
+add constraint emp_copy_dno_fk foreign key(dno) references dept_copy(dno);
+--on delete cascade | on delete set null; 필요시 추가 가능
+
+--추가된 제약조건 확인
+select table_name, constraint_name
+from user_constraints
+where table_name in ('DEPT_COPY', 'EMP_COPY');
+
+
+
+--(ex3) not null 제약조건 추가하기
+alter table emp_copy
+modify ename constraint emp_copy_ename_nn not null;
+
+
+
+--(ex4) default 정의 추가하기 (★★constraint 제약조건명 입력하면 오류)
+alter table emp_copy
+modify salary default 500; 
+
+
+--추가된 제약조건 확인
+select table_name, constraint_name
+from user_constraints
+where table_name in ('DEPT_COPY', 'EMP_COPY'); --default 정의는 결과에 없음(제약조건이 아니므로)
+
+
+--(ex5) check 제약조건 추가하기
+alter table emp_copy
+add constraint emp_copy_salary_check check(salary>1000);
+--실패: 이미 1000보다 작은 급여가 있으므로 조건에 위배
+
+
+alter table emp_copy
+add constraint emp_copy_salary_check check(500<=salary and salary<10000);
+
+alter table dept_copy
+add constraint dept_copy_dno_check ckeck(dno in(10,20,30,40,50)); --반드시 dno는 5가지 중 하나만 insert가능
+
+
+
+
+--2.2 제약 조건 제거
+--외래키 제약조건에 지정되어 있는 부모 테이블의 기본키 제약조건을 제거하려면
+--테이블의 참조 무결성 제약조건을 먼저 제가한 후 제거하거나
+--cacade 옵션 사용 : 제거하려는 컬럼을 참조하는 참조 무결성 제약조건도 함께 제거
+alter talble dept_copy --부모
+drop primary key; --실패 : 자식 테이블에서 참조하고 있으므로
+
+
+alter talble dept_copy 
+drop primary key cascade; --참조하는 자식 테이블의 '참조 무결성 제약조건'도 함께 제거됨
+
+--삭제된 제약조건 확인 : 둘 다 삭제됨
+select table_name, constraint_name
+from user_constraints
+where table_name in ('DEPT_COPY', 'EMP_COPY');
+
+--ex) not null 제약조건 제거
+alter table emp_copy
+drop constraint emp_copy_ename_nn;
+
+--삭제된 제약조건 확인
+---------------------------------------------------------------------------------------
+
+--3. 제약조건 활성화 및 비활성화
+--alter table 테이블명 + disable constraint 제약조건명 [cascade]
+--제약 조건을 삭제하지 않고 일시적으로 비활성화
+--※ 위 내용 참조하기
+
+
+
+
+--혼자해보기--------------------------------------------------------------------------------
+
+--1. employee 테이블의 구조를 복사하여 emp_sample이란 이름의 테이블을 만드시오. 
+--사원 테이블의 사원번호 칼럼에 테이블 레벨로 primary key 제약 조건을 지정하되 제약 조건 이름은 my_emp_pk로 지정하시오
+
+create table emp_sample
+as 
+select * from employee
+where 0=1;
+
+alter table emp_sample
+add constraint my_emp_pk primary key(eno);
+
+
+--2. 부서 테이블의 부서번호 칼럼에 테이블 레벨로 primary key 제약 조건을 지정하되 제약 조건 이름은 my_dept_pk로 지정하시오
+
+create table dept_sample
+as
+select * from department
+where 0=1;
+
+alter table department
+add constraint my_dept_pk primary key(dno);
+
+
+--3. 사원 테이블의 부서번호 칼럼에 존재하지 않는 부서의 사원이 배정되지 않도록 외래 키 제약 조건을 지정하되 제약 조건 이름은 my_emp_dept_fk로 지정하시오
+
+alter table dept_sample
+add constraint my_emp_dept_fk foreign key references department;
+--오류 발생 안 한 이유 : 자식 테이블에 데이터 없음(자식에서 부모를 참조하는 데이터가 없음)
+--반드시 부모의 데이터를 먼저 insert => 자식의 참조하는 데이터 insert
+
+
+--4. 사원 테이블의 커미션 칼럼에 0보다 큰 값만을 입력할 수 있도록 제약 조건을 지정하시오
+
+alter table emp_sample
+add constraint emp_sample_commission_ch check(commission > 0);
 
 
 
