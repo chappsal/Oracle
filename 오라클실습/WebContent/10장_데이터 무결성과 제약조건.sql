@@ -1,13 +1,49 @@
 --<북스-10장_데이터 무결성과 제약조건>
+--※ 대괄호[]의 항목은 필요하지 않을 경우 생략 가능
 
 create table [schema:소유자 이름(=사용자 계정)] table명( --schema: 스키마
 컬럼명1 데이터 타입(길이) [not null | null | unique | default 표현 | check(체크조건)]
-[[[constraint 제약조건명(테이블명_컬럼명_pk)] | primary key | [constraint 제약조건명(테이블명_컬럼명_fk)] | [foreign key]]  references 참조테이블명], --[]는 모두 옵션
+[[constraint 제약조건명(테이블명_컬럼명_pk)] primary key | [constraint 제약조건명(테이블명_컬럼명_fk)] | [foreign key]]  references 참조테이블명], --컬럼레벨
 컬럼명2...,
 컬럼명n...,
 
 테이블 레벨 제약조건
+[constraint 제약조건명(테이블명_컬럼명_pk)] primary key(컬럼명1, 컬럼명2..), --컬럼명이 2개 이상일 때 테이블 레벨 사용
+[constraint 제약조건명(테이블명_컬럼명_fk)] | foreign key(컬럼명) references 참조테이블명(컬럼명),
+[ON DELETE no action(기본값) | cascade | set null | set default] --반드시 테이블 레벨에서만 가능
+[ON UPDATE no action(기본값) | cascade | set null | set default] --반드시 테이블 레벨에서만 가능
 );
+
+
+/*
+
+== ON DELETE 뒤에 ==
+1. no action (기본값) : 부모 테이블 값이 자식 테이블에서 참조하고 있으면 부모 삭제 불가
+      ※ restrict(MY SQL에서 기본 값, no action과 같은 의미로 사용 )
+
+      ※ 오라클에서의 restrict는 no action과 약간의 차이가 있음
+
+2. cascade : 참조되는 '부모테이블의 값이 삭제'되면 연쇄적으로 '자식 테이블이 참조하는 값 역시 삭제'
+			 ex) 부서 테이블의 부서번호 40 삭제할 때 사원 테이블의 부서번호 40도 삭제됨
+
+3. set null : 부모 테이블의 값이 삭제되면 해당 참조하는 자식 테이블의 값들은 null값으로 설정 
+			  (단, null 허용한 경우) 
+			  ex) 부서 테이블의 부서번호 40 삭제할 때 사원 테이블의 부서번호가 null로 변경
+																		
+4. set default : 자식의 관련 튜플을 미리 설정한 값으로 변경
+				 ex) 부서 테이블의 부서번호 40 삭제할 때 사원 테이블의 부서번호를 default 값으로 변경
+				  이 제약조건이 실행하려면 모든 참조키 열에 기본 정의가 있어야 함
+				  컬럼이 null을 허용하고 명시적 기본 값이 설정되어 있지 않은 경우 null은 해당 열의 암시적 기본 값이 된다
+
+
+== ON UPDATE 뒤에 ==		
+
+1. no action (기본값)(restrict와 비슷) : 자식 테이블에 데이터가 남아있는 경우 부모 테이블의 데이터는 수정 불가 
+2. cascade : 부모 데이터 수정 시 자식 데이터도 동시 수정
+3. set null : 부모 데이터 수정 시 해당되는 자식 데이터의 컬럼 값은 null로 수정
+4. set default : 부모 데이터 수정 시 자식 데이터의 컬럼 값은 기본 값(default)으로 수정
+
+*/
 
 
 --1. 제약조건
@@ -184,29 +220,6 @@ constraint emp_second_dno_fk foreign key(dno) references department2(dno)
 on delete cascade
 );
 
-
-/*
-
-== ON DELETE 뒤에 ==
-1. no action (기본값) : 부모 테이블 값이 자식 테이블에서 참조하고 있으면 부모 삭제 불가
-      ※ restrict(MY SQL에서 기본 값, no action과 같은 의미로 사용 )
-
-      ※ 오라클에서의 restrict는 no action과 약간의 차이가 있음
-
-2. cascade : 참조되는 '부모테이블의 값이 삭제'되면 연쇄적으로 '자식 테이블이 참조하는 값 역시 삭제'
-			 ex) 부서 테이블의 부서번호 40 삭제할 때 사원 테이블의 부서번호 40도 삭제됨
-
-3. set null : 부모 테이블의 값이 삭제되면 해당 참조하는 자식 테이블의 값들은 null값으로 설정 
-			  (단, null 허용한 경우) 
-			  ex) 부서 테이블의 부서번호 40 삭제할 때 사원 테이블의 부서번호가 null로 변경
-																		
-4. set default : 자식의 관련 튜플을 미리 설정한 값으로 변경
-				 ex) 부서 테이블의 부서번호 40 삭제할 때 사원 테이블의 부서번호를 default 값으로 변경
-				  이 제약조건이 실행하려면 모든 참조키 열에 기본 정의가 있어야 함
-				  컬럼이 null을 허용하고 명시적 기본 값이 설정되어 있지 않은 경우 null은 해당 열의 암시적 기본 값이 된다
-			
-
- */
 
 insert into emp_second values(1, '김', '영업', null, 30);
 insert into emp_second values(2, '이', '조사', 2000, 20);
