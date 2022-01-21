@@ -31,7 +31,7 @@ as 서브쿼리
 --NOFORCE : 뷰를 생성할 때 쿼리문의 테이블, 컬럼, 함수 등이 존재하지 않으면 생성 불가
 --			반드시 기본 테이블이 존재할 경우에만 뷰 생성
 
---with check option : where절의 조건에 해당하는 데이터만  사장, 변경이 가능
+--with check option : where절의 조건에 해당하는 데이터만  저장, 변경이 가능
 
 --with read only : select문만 가능, DML(=데이터 조작어:변경 - insert update delete) 불가
 
@@ -55,7 +55,7 @@ as 서브쿼리
 --			 distinct, 그룹함수, group by, rownum 포함 할 수 없다
 --			   복합 뷰는 join, 함수, group by, union 등을 사용하여 뷰를 생성
 --			   함수 등을 사용할 경우 '컬럼 별칭' 사용 필수 (ex. as hiredate)
---			   복합 뷰는 select는, 사용 가능하지만 insert, update, delete는 상황에 따라서 가능하지 않을 수도 있다.
+--			   복합 뷰는 select는 사용 가능하지만 insert, update, delete는 상황에 따라서 가능하지 않을 수도 있다.
 
 
 
