@@ -369,8 +369,48 @@ drop constraint SYS_C007077 cascade;
 create unique index idx_dept_dno
 on dept12(dno);
 
+--★★ 고유 인덱스가 지정되려면 추가한 데이터에 중복된 값이 있어서는 안 됨
+--만약 오류가 발생한다면 cannot create unique index; duplicate keys found
+--중복된 데이터가 있기 때문
+select * from dept12;
+
 create unique index idx_dept_loc
 on dept12(loc);
+
+--========================================================================
+
+--★★ 고유 인덱스가 지정되려면 추가한 데이터에 중복된 값이 있어서는 안 됨 [테스트]
+
+--테스트 위해 
+create table dept12_2
+as
+select * from department;
+--테이블 구조와 데이터 복사(★제약조건 복사 불가-dno는 기본키 아님)
+
+select * from dept12_2;
+
+insert into dept12_2 values(10, 'ACCOUNTING', 'SEOUL');
+--성공(dno는 기본키가 아니므로 중복된 10 입력 가능) 현재 dno 10 중복, loc 중복 없음
+
+
+--dno에 고유 인덱스 지정
+create unique index idx_dept12_2_dno
+on dept12_2(dno);
+--실패: cannot CREATE UNIQUE INDEX; duplicate keys found (=중복된 키 10 발견)
+--dept12_2를 생성할 때 department의 제약 조건을 상속받지 못해서
+
+
+--loc에 고유 인덱스 지정
+create unique index idx_dept12_2_loc
+on dept12_2(loc);
+--성공: 중복된 값 없음
+
+
+
+
+
+--========================================================================
+
 
 ---------------------------지금까지 생성한 인덱스는 '단순 인덱스' (한 개의 컬럼으로 구성한 인덱스)
 
@@ -413,4 +453,7 @@ where table_name in ('EMP12');
 --사원번호롤 시퀀스로부터 발급
 
 --3. EMP001 테이블의 모든 얼럼을 ㅋ인덱스로 설정하되 인덱스 이름을 IDX_EMP01_ENAME로 지정
+sekect * from EMP;
 
+create index IDX_EMP_EbANE
+on EMP(name);
