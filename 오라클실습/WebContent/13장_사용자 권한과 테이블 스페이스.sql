@@ -73,6 +73,8 @@ select default_tablespace --'system'
 from user_users;
 
 --1. <테이블 스페이스 생성> --------------------------------------------------------
+
+
 creata tablespace [테이블스페이스명]
 datafile '파일경로'
 size 초기 데이터 파일 크기 설정 (M)
@@ -103,6 +105,7 @@ from dba_tablespaces; --모든 테이블 스페이스의 storage 정보 및 상�
 
 
 --2. <테이블 스페이스 변경> --------------------------------------------------------
+
 --test_data 테이블 스페이스에 datafile 1개 더 추가
 alter tablespace test_data
 add datafile 'C:\oraclexe\app\oracle\oradata\XE\test\test_data02.dbf' 
@@ -111,7 +114,10 @@ size 10M;
 --즉, 물리적으로 2개의 데이터 파일로 구성된 하나의 테이블 스페이스가 생성됨
 
 
+
+
 --3. <테이블 스페이스의 data file 크기 조절> --------------------------------------------------------
+
 --3-1. 자동으로 크기 조절
 alter tablespace test_data
 add datafile 'C:\oraclexe\app\oracle\oradata\XE\test\test_data03.dbf' 
@@ -123,6 +129,7 @@ maxsize 250M;
 --		ex. 리눅스에서는 파일 1개를 핸드링할 수 있는 사이즈가 2G로 한정
 --			따라서, data file이 2G를 넘으면 오류 발생. 가급적 maxsize 지정
 
+
 --3-2. 수동으로 크기 조절(★★ 주의 : alter database)
 alter database 
 datafile 'C:\oraclexe\app\oracle\oradata\XE\test\test_data02.dbf' 
@@ -130,7 +137,10 @@ resize 20M; --10M -> 20M로 크기 변경
 --하나의 테이블 스페이스(test_data)=총 40M인 3개의 물리적 datafile로 구성됨
 
 
---4. <data file 용량 조회>
+
+--4. <data file 용량 조회> -----------------------------------------------------------------
+
+
 select tablespac_name, bytes/1024/1024MB, file_name, autoextensible as "auto"
 from dba_data_files; --file_name : 파일경로
 
@@ -142,13 +152,17 @@ from dba_free_space_coalesced; --테이블스페이스가 수용할 수 있는 e
 --percent_extents_coalesced : 그 비율은 몇 %?
 
 
---5. <테이블 스페이스 단편화된 공간 수집 : 즉, 디스크 조각모음>
+
+
+--5. <테이블 스페이스 단편화된 공간 수집 : 즉, 디스크 조각모음> --------------------------------------------
+
 alter tablespace 테이블스페이스명 coalesce;
 alter tablespace test_data coalesce;
 
 
 
---6. <테이블스페이스 제거하기>
+--6. <테이블스페이스 제거하기> -------------------------------------------------------------------
+
 --형식
 drop tablespace 테이블스페이스명; --테이블스페이스 내에 객체가 존재하면 삭제 불가
 [including contents]; --<옵션 1> 해결법 : 모든 내용(=객체) 포함하여 삭제
@@ -161,13 +175,16 @@ create table test3(
 a char(1))
 tablespace test_data;
 
+
 drop tablespace test_data; --실패: tablespace not empty, use including contents option
+
 
 --해결법 <옵션 1>
 drop tablespace test_data
 including contents;
 --성공. 탐색기에서 확인해보면 물리적 data file은 삭제가 안 됨
 --따라서 직접 삭제해줘야 함
+
 
 --해결법 <옵션 2>
 drop tablespace test_data
@@ -183,6 +200,7 @@ cascade contraints; --제약조건까지 삭제하여 해결 가능
 
 
 --교재 308p--------------------------------------------------------------------
+
 --1. 사용권한
 --오라클 보안 정책 : 2가지 (시스템 보안 -> 시스템 권한, 데이터 보안 -> 객체 권한) (모든 데이터는 객체. 뷰, 테이블...)
 --[1] 시스템 보안 : DB에 접근 권한을 설정. 사용자 계정과 암호 입력해서 인증 받아야 함
@@ -192,19 +210,20 @@ cascade contraints; --제약조건까지 삭제하여 해결 가능
 --권한 : 시스템을 관리하는 '시스템 권한', 객체를 사용할 수 있도록 관리하는 '객체 권한'
 
 --308p 표-시스템 권한 : 'DBA 권한을 가진 사용자'가 시스템 권한 부여
+
 --1. create session : DB 접속(=연결) 권한
-
 --2. create table 	: 테이블 생성 권한
-
 --3. unlimited tablespace : 테이블 스페이스에 블록을 할당할 수 있도록 해주는 권한
---	그러나 unlimited tablespace 사용시 문제 발생 가능성 (default tablespaced)
---...
+--	  그러나 unlimited tablespace 사용시 문제 발생 가능성 (default tablespace인 'SYSTEM'의 중요 데이터 보안상 문제 발생 가능성)
+--	  그래서 default tablespace를 다른 테이블 스페이스(USERS)로 변경하고
+--	 quota절로 사용할 용량을 할당해준다 (이 때, unlimited로 할당해도 무방)
 
 --4. create sequence  : 시퀀스 생성 권한
 --5. create view 	  : 뷰 생성 권한
 --6. select any table : 권한을 받은 자가 어느 테이블, 뷰라도 검색 가능
 --이 외에도 100여개 이상의 시스템 권한 존재
 --DBA는 사용자를 생성할 때마다 적절한 시스템 권한 부여
+
 
 --<시스템 권한>--------------------------------------------------------------------
 --소유한 객체의 사용 권한 관리 명령어 : DCL(GRANT, REVOKE)
@@ -220,9 +239,9 @@ GRANT 'create session' TO 사용자 | 롤(role) | public(모든 사용자) [with
 --<실습 시작>
 --'DBA 권한'을 가진 system으로 접속하여 사용자의 이름, 암호 지정하여 사용자 생성
 
-/*
 
-SQL> conn system/1234
+
+SQL> conn system/1234 --접속
 Connected.
 SQL> create user user01 identified by 1234;
 
@@ -242,16 +261,16 @@ Grant succeeded.
 
 SQL> conn user01/1234
 Connected.
-SQL> create table sampletb1(no number);
-create table sampletb1(no number)
+SQL> create table sampletb1(no number); --테이블 생성 실패
+
 *
 ERROR at line 1:
 ORA-01950: no privileges on tablespace 'SYSTEM'
 
-*/
 
 
---1. 실패 해결 방법-1 : 처음부터 unlimited tablespace 권한을 준다 
+
+--1. 실패 해결 방법-1 : 처음부터 unlimited tablespace 권한을 준다 (권장 x)
 SQL> conn system/1234
 Connected.
 SQL> grant unlimited tablespace to user01;
@@ -274,7 +293,141 @@ alter user user01
 default tablespace users
 quota unlimited on users; -- unlimited : 용량을 제한하지 않고 사용 가능 (-1로 표시됨)
 
+alter user user01
+default tablespace test_data
+quota 2M on test_data;
+--quota unlimited on test_data;
+
 select username, tablespace_name, max_bytes
 from dba_ts_quotas --quota가 설정된 user만 표시
 where username in ('USER01');
+
+--------------------------------------------------------------------------------------
+--<안전한 user 생성 방법> 					※ 롤 참조(321p 표)
+--보통 user를 생성하고
+--grant connect, resource to 사용자명;   
+--를 습관적으로 권한을 주는데 resource 롤을 주면 'unlimited tablespace'까지 주기에
+--'SYSTEM' 테이블 스페이스를 무제한으로 사용 가능하게 되어
+--'보안'혹은 관리상에 문제가 될 소지를 가지고 있다
+
+--[1] USER 생성
+create user user02 identified by 1234;
+
+--[2] 권한 부여
+grant connect, resource to user02;
+
+--[3] 'unlimited tablespace' 권한 회수 (권한을 준 DBA만 회수 가능)
+revoke unlimited tablespace from user02;
+
+--[4] user2의 default tablespace 변경 , quota절로 영역 할당
+alter user user02
+default tablespace users 
+quota 10M on users;
+--quota unlimited on users;
+
+
+--'user02'의 default)tablespace 확인
+select username, default_tablespace
+from dba_users
+where lower(username) in ('user02');
+
+
+select username, tablespace_name, max_bytes --아래 쿼리문 실행 후 확인하면 max_bytes : -1 (=무제한)
+from dba_ts_quotas --quota가 설정된 user만 표시
+where lower(username) in ('user02');
+
+
+alter user user02
+quota unlimited on users;
+
+
+--[with admin option]------------------------------------------------------------------------
+
+/*
+ * [with admin option] 옵션
+ * 1. 권한을 받은 자 (=GRANTEE 그란티)가 시스템 권한 또는 롤을 다른 사용자 또는 또 다른 롤에게 부여할 수 있도록 해줌
+ * 2. with admin option으로 주어진 권한은 계층적이지 않음(=평등하다)
+ * 		즉, b_user가 a_user의 권한을 revoke(박탈)할 수 있음. 평등하기 때문에
+ * 3. revoke시에는 with admin option 명시하지 않아도 됨
+ * 4. with admin option으로 grant한 권한은 revoke시 cascade되지 않는다
+ * 
+ */
+
+
+--<실습 1>
+
+--1. DBA 권한을 가진 system으로 접속해 a_user 생성 후, DB접속 권한(with admin option) 부여
+--		=> a_user는 다른 유저에게 권한 부여 가능
+conn system/1234
+create user a_user identified by 1234;
+grant create session to a_user with admin option;
+
+-- b_user 생성
+create user b_user identified by 1234;
+
+
+--2. a_user로 접속하여 b_user에게  DB접속 권한(with admin option) 부여
+--		=> b_user는 다른 유저에게 권한 부여 가능
+conn a_user/1234
+grant create session to b_user with admin option;
+
+
+--3. b_user로 접속하여 a_user의  DB접속 권한 회수 
+conn b_user/1234
+revoke create session from a_user;
+
+--4. a_user로 접속하려면
+conn a_user/1234 --실패
+
+
+---------------------------------------------------------------------------
+
+--2. 롤 (role) 321p : 다양한 권한을 효과적으로 관리할 수 있도록 관련된 권한끼리 묶어 놓은 것
+--여러 사용자에게 보다 간편하게 권한을 부여할 수 있도록 함
+--grant connect, resource, dba to system;
+--※ DBA 롤 : 시스템 자원을 무제한적으로 사용, 시스템 관리에 필요한 모든 권한
+--※ CONNECT 롤 : Oracle 9i까지 - 롤에 부여된 권한 8가지, Oracle 10g 부터는 'create session'권한만 가지고 있음
+--※ RESOURCE 롤 : 객체(테이블, 뷰 등)을 생성할 수 있도록 하기 위해 '시스템 권한'을 그룹화
+
+---------------------------------------------------------------------------
+---------------------------------------------------------------------------
+
+--소유한 객체의 사용 권한 관리를 위한 명령어 : DCL(GRANT, REVOKE)
+--<객체 권한 부여> (312p) : 'DB 관리자나 객체 소유자'가 다른 사용자에게 권한을 부여할 수 있다
+
+/*
+
+객체 권한 형식 : 반드시 'DBA 권한'을 가진 사용자만 권한 부여 가능
+GRANT 'select | insert | update | delete.. ON 객체 ' TO 사용자 | public(=모든 사용자) [with GRANT option]
+ex) GRANT ALL on 객체  to 사용자 (all:모든 객체 권한)
+
+*/
+
+--1. select on 테이블명
+--조회 권한
+connect system/1234
+alter user user01 identified by 1234; 
+grant create session to user01; --접속 권한 (시스템 권한)
+
+conn user01/1234 --접속 성공
+
+select * from employees; --user01의 employees 조회 => 실패, 테이블 없음
+
+select * from hr.employees; --(hr:교육용 계정) / 실패 : user01은 객체를 조회할 권한이 없기 때문, hr로부터 받지 않음 
+
+conn hr/1234 --접속시 
+
+/*
+--1. lock이면 
+system/1234
+alter user hr account unlock; --잠김 해제
+
+--2. 비밀번호가 틀렸으면 (invalid username/password; logon denied)
+alter user hr identified by 1234; --비밀번호 변경
+*/
+conn hr/1234 --다시 접속 성공 => user01에게 '테이블 조회 권환' 부여
+grant select on employees to user01;
+
+conn user01/1234 --다시 접속
+select * from hr.employees; --조회 성공
 
