@@ -431,3 +431,97 @@ grant select on employees to user01;
 conn user01/1234 --다시 접속
 select * from hr.employees; --조회 성공
 
+
+--2. insert on 테이블명
+
+ conn hr/1234 --접속
+ grant insert on employees to user01; --user01에게 '테이블 삽입 권한' 부여
+ 
+ conn user01/1234 --접속
+ desc hr.employees; --테이블 구조 확인 : not null인 컬럼에 대해서만 값 부여(나머지는 null값 자동 삽입(=부여))
+ 
+ insert into hr.employees(EMPLOYEE_ID, FIRST_NAME, LAST_NAME, EMAIL, HIRE_DATE, JOB_ID)
+ values(8010, '길동', '홍', 'a@naver.com', '2021-02-03', 'AC_ACCOUNT');
+ 
+ 
+ --3. update(특정 컬럼) on 테이블명
+ conn hr/1234
+ grant update(salary) on employees to user01; --uesr01에게 '테이블의 특정 컬럼'을 수정할 수 있는 권한 부여
+ 
+ conn user01/1234
+ update hr.employees set salary=1000 where employee_id=8010; --성공
+ update hr.employees set commission_pct=500 where employee_id=8010; --실패 : 컬럼 수정 권한이 없어서 (insufficient privileges : 부여받지 않은 권한)
+ 
+ 
+ --<객체 권한 회수=제거> DB관리자, 권한을 부여한 사용자가 다른 사용자에게 부여한 객체 권한 박탈---------------------------------------------
+ --REVOKE 객체 권한 FROM 사용자
+ --※ public으로 권한 부여시 회수할 때도 public으로 해야 함
+ 
+ 
+ --1. revoke select on 객체
+ conn hr/1234 --권한을 부여한 사용자로 접속
+ revoke select on employees from user01;
+ 
+ --revoke insert on employees FROM user01;
+ --revoke update(salary) on employees FROM user01; --일일이 권한 회수
+ 
+ conn user01/1234 --접속
+ select * from hr.employees; --실패
+ update hr.employees set salary=2000 where employee_id=8010; --성공
+ 
+ 
+ --2. revoke ALL on 객체 : 객체에 대한 모든 권한 회수
+ conn hr/1234
+ revoke ALL on employees FROM user01;
+ revoke ALL on employees FROM public; --모든 사용자에게서 employee에 대한 모든 권한 회수
+ 
+ conn user01/1234 
+ update hr.employees set salary=3000 where employee_id=8010; --실패
+--실패 메세지 : table or view does not exitst : 아예 조회도 안되므로
+
+ 
+ 
+ --[with grant option] 부여받은 객체권한을 다른 사용자에게 다시 부여할 수 있음 -----------------------------------------------------
+ 
+ /*
+  * [with grant option] 옵션
+  * 1. 권한을 받은 자(=grantee)가 객체 권한을 다른 사용자에게 부여할 수 있도록 해줌
+  * 2. with grant option 으로 주어진 권한은 계층적 (평등하지 않음)
+  * 	그래서, b_user가 a_user의 권한을 revoke 불가
+  * 3. revoke시에는 with grant option 옵션을 명시할 필요 없음
+  * 4. with grant option으로 grant한 권한은 revoke시 cascade됨
+  * 	즉, 부여자의 권한이 회수될 때 권한을 받은 자(=grant)의 권한도 같이 회수됨
+  * 
+  * ※ with grant option 옵션은 role에 권한을 부여할 때는 사용 불가
+  */
+ 
+ --<실습 1> 객체 궈한 부여시 with grant option 사용하여 실습
+ conn system/1234
+ --user 2개 생성 -> 시스템 권한 부여
+ create user userutest01 identified by 1234;
+ create user userutest02 identified by 1234;
+ 
+ grant create session, create table, create view to usertest01;
+ grant create session, create table, create view to usertest02;
+ 
+ 
+ --hr(객체의 소유자)로 접속하여 '객체 권한' 부여
+ conn hr/1234 --conn system/1234로도 객체 권한 부여 가능
+ --usertest01은 소유자 hr로부터 다른 사용자에게 해당 권한을 부여할 수 있는 권한 부여받음
+ grant select on employees to usertest01 with grant option;
+ --그래서
+ conn usertest01/1234
+ grant select on hr.employees to usertest02; --부여받은 권한을 usertest02에게 부여할 수 있음 
+ 
+ 
+ conn usertest02/1234
+ select * from hr.employees; --성공
+ 
+ 
+ --[2] 부여한 권한 회수하기 위해 객체의 소유자 계정으로
+ conn hr/1234 --접속
+ revoke select on employees from useruest01; --권한 회수하면 cascade로 권한이 다 회수
+ 
+ conn usertest02/1234
+ select * from hr.employees; --실패
+ 
